@@ -35,6 +35,26 @@ go2_ws/
 └── GEMINI.md               # This documentation
 ```
 
+## FAST-LIO2 Documentation
+**FAST-LIO2** (Fast LiDAR-Inertial Odometry) è un framework di odometria e mapping LiDAR-inerziale veloce, robusto e versatile.
+
+### Caratteristiche Principali
+*   **ikd-Tree:** Utilizza una struttura dati "incremental k-d tree" dinamica che permette l'inserimento di nuovi punti e la rimozione di quelli vecchi in modo efficiente, supportando frequenze LiDAR elevate (>100Hz).
+*   **Odometria Diretta:** Registra i punti grezzi direttamente sulla mappa (punti-su-mappa) senza la necessità di estrazione manuale di feature (come bordi o piani), migliorando la robustezza in ambienti poveri di feature.
+*   **Fusione Stretta (Tightly-coupled):** Integra i dati LiDAR con l'IMU utilizzando un filtro di Kalman iterativo (IEKF).
+*   **Supporto Sensori:** Compatibile con LiDAR rotanti (Hesai, Velodyne, Ouster) e a stato solido (Livox).
+
+### Repository e Risorse
+*   **Repository Ufficiale (ROS 1/2):** [hku-mars/FAST_LIO](https://github.com/hku-mars/FAST_LIO)
+*   **Branch ROS 2:** [hku-mars/FAST_LIO/tree/ROS2](https://github.com/hku-mars/FAST_LIO/tree/ROS2)
+*   **Documentazione Tecnica:** [Fast_LIO_2.pdf](https://github.com/hku-mars/FAST_LIO/blob/main/doc/Fast_LIO_2.pdf) (Articolo scientifico).
+
+### Configurazione per Hesai XT16
+Per utilizzare FAST-LIO2 con l'Hesai XT16 sul Go2:
+1.  **Formato Dati:** Assicurarsi che il driver del LiDAR pubblichi messaggi di tipo `sensor_msgs/PointCloud2`.
+2.  **Parametri IMU:** I dati IMU devono essere sincronizzati. Il Go2 fornisce IMU ad alta frequenza tramite l'SDK.
+3.  **Extrinsics:** È necessario calibrare o definire la trasformata statica (estrinseci) tra il LiDAR e l'IMU nel file `.yaml` di configurazione di FAST-LIO2.
+
 ## Building and Running
 
 ### Prerequisites
