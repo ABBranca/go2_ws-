@@ -67,6 +67,31 @@ On your laptop (connected via Ethernet to the robot):
     rviz2 -d src/go2_nav_bridge/rviz/nav2.rviz
     ```
 
+## Docker Hub & CI/CD Workflow (Automated)
+
+Questo progetto usa le **GitHub Actions** per compilare e caricare l'immagine Docker automaticamente su Docker Hub ogni volta che carichi il codice su GitHub (branch `main`).
+
+### 1. Come Funziona
+Ogni volta che fai `git push origin main`, GitHub:
+1.  Prende il tuo codice.
+2.  Compila l'immagine Docker.
+3.  La carica su Docker Hub con due tag:
+    *   `latest`: L'immagine più recente.
+    *   `<sha>`: L'identificativo unico del commit (per tornare indietro se serve).
+
+### 2. Come Usare l'Immagine sul Robot
+Sul computer di bordo del robot Go2, non è più necessario compilare il codice locale. Ti basta scaricare l'ultima versione:
+```bash
+cd docker
+docker compose pull  # Scarica l'immagine da Docker Hub
+docker compose up -d # Avvia il sistema
+```
+
+### 3. Configurazione Necessaria
+Assicurati che nei **Secrets** della repo GitHub siano presenti:
+*   `DOCKERHUB_USERNAME`: Il tuo username Docker Hub.
+*   `DOCKERHUB_TOKEN`: Il tuo Personal Access Token di Docker Hub.
+
 ## Multi-Machine Development (Desktop vs Laptop)
 
 To work seamlessly across different machines (e.g., Desktop at home and Laptop in the lab), follow this workflow:
