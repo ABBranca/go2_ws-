@@ -1,0 +1,14 @@
+services:
+  go2_ros2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: go2_navigation
+    network_mode: host
+    privileged: true
+    volumes:
+      - /home/Ale/Documents/Uni/go2_ws:/ros2_ws
+    environment:
+      - ROS_DOMAIN_ID=1  # Change as needed
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+    command: /bin/bash -c "source /opt/ros/humble/setup.bash && colcon build && source install/setup.bash && sleep infinity"
