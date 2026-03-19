@@ -1,78 +1,78 @@
 # Unitree Go2 - Autonomous Navigation Setup
 
-Benvenuto nel repository per la navigazione autonoma del robot Unitree Go2. Questa guida è pensata per essere semplice e chiara, anche se non hai molta esperienza con la programmazione o Linux.
+Welcome to the repository for the autonomous navigation of the Unitree Go2 robot. This guide is designed to be simple and clear, even if you don't have much experience with programming or Linux.
 
-## Cos'è questo progetto?
-L'obiettivo è far muovere il robot Go2 in modo autonomo usando:
-*   **ROS 2 Humble**: Il "cervello" che gestisce i sensori e i motori.
-*   **LiDAR Hesai XT16**: Il sensore laser che permette al robot di "vedere".
-*   **Docker**: Uno strumento che crea una "scatola chiusa" con tutto il software già installato, così non devi configurare nulla sul tuo computer.
+## What is this project?
+The goal is to enable the Go2 robot to move autonomously using:
+*   **ROS 2 Humble**: The "brain" that manages sensors and motors.
+*   **LiDAR Hesai XT16**: The laser sensor that allows the robot to "see".
+*   **Docker**: A tool that creates a "closed box" with all the software already installed, so you don't have to configure anything on your computer.
 
 ---
 
-## Preparazione (Da fare una sola volta)
+## Preparation (One-time only)
 
-### 1. Requisiti Hardware
+### 1. Hardware Requirements
 *   **Robot**: Unitree Go2.
-*   **PC/Laptop**: Ubuntu 22.04 installato (consigliato) e una porta Ethernet.
-*   **Cavo Ethernet**: Per collegare il PC al robot.
+*   **PC/Laptop**: Ubuntu 22.04 installed (recommended) and an Ethernet port.
+*   **Ethernet Cable**: To connect the PC to the robot.
 
-### 2. Installazione di Docker
-Se non hai Docker, installalo con questi semplici comandi sul tuo terminale:
+### 2. Installing Docker
+If you don't have Docker, install it with these simple commands in your terminal:
 ```bash
 sudo apt update
 sudo apt install docker.io docker-compose -y
 sudo usermod -aG docker $USER
 ```
-*Riavvia il computer dopo questi comandi.*
+*Restart your computer after these commands.*
 
 ---
 
-## Come Avviare il Sistema
+## How to Start the System
 
-### Passaggio 1: Collegamento al Robot
-1.  Collega il cavo Ethernet tra il tuo laptop e il robot Go2.
-2.  Configura la rete del tuo laptop:
-    *   Vai nelle impostazioni di rete di Ubuntu.
-    *   Seleziona la connessione cablata (Ethernet) e imposta l'**IPv4 su "Manual"**.
+### Step 1: Connecting to the Robot
+1.  Connect the Ethernet cable between your laptop and the Go2 robot.
+2.  Configure your laptop's network:
+    *   Go to Ubuntu's network settings.
+    *   Select the wired connection (Ethernet) and set **IPv4 to "Manual"**.
     *   **Address**: `192.168.123.10`
     *   **Netmask**: `255.255.255.0`
     *   **Gateway**: `192.168.123.1`
-3.  Verifica la connessione scrivendo nel terminale: `ping 192.168.123.161` (dovresti vedere dei tempi di risposta).
+3.  Verify the connection by typing in the terminal: `ping 192.168.123.161` (you should see response times).
 
-### Passaggio 2: Scaricare il Progetto
-Apri il terminale e scrivi:
+### Step 2: Download the Project
+Open the terminal and type:
 ```bash
 git clone https://github.com/ABBranca/go2_ws.git
 cd go2_ws
 ```
 
-### Passaggio 3: Avvio dell'ambiente (Docker)
-Entra nella cartella `docker` e avvia tutto:
+### Step 3: Start the Environment (Docker)
+Enter the `docker` folder and start everything:
 ```bash
 cd docker
 docker compose up --build -d
 ```
-*Questo comando scaricherà e configurerà tutto il necessario automaticamente. Potrebbe metterci qualche minuto la prima volta.*
+*This command will automatically download and configure everything needed. It may take a few minutes the first time.*
 
 ---
 
-## Visualizzazione (Rviz2)
-Per vedere cosa "vede" il robot dal tuo laptop:
-1.  Apri un nuovo terminale.
-2.  Digita:
+## Visualization (Rviz2)
+To see what the robot "sees" from your laptop:
+1.  Open a new terminal.
+2.  Type:
     ```bash
     rviz2
     ```
-3.  Carica la configurazione che trovi in `src/go2_nav_bridge/rviz/nav2.rviz` (File -> Open Config).
+3.  Load the configuration found in `src/go2_nav_bridge/rviz/nav2.rviz` (File -> Open Config).
 
 ---
 
-## Risoluzione Problemi Comuni
-*   **Il robot non risponde**: Controlla i cavi e che l'IP del laptop sia `192.168.123.10`.
-*   **Docker dà errore di permessi**: Assicurati di aver eseguito il comando `usermod` e di aver riavviato.
-*   **Comandi non trovati**: Assicurati di essere dentro la cartella del progetto (`go2_ws`).
+## Common Troubleshooting
+*   **The robot does not respond**: Check the cables and ensure the laptop's IP is `192.168.123.10`.
+*   **Docker gives permission errors**: Make sure you ran the `usermod` command and restarted.
+*   **Commands not found**: Ensure you are inside the project folder (`go2_ws`).
 
 ---
 
-**Contatti**: Per domande tecniche o supporto, contatta [ABBranca](https://github.com/ABBranca).
+**Contacts**: For technical questions or support, contact [ABBranca](https://github.com/ABBranca).
