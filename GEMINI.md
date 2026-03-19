@@ -30,14 +30,15 @@ go2_ws/
 │   │   ├── src/bridge_node.cpp
 │   │   ├── CMakeLists.txt
 │   │   └── package.xml
-│   ├── unitree_ros2/       # Git Submodule: Official Unitree SDK
-│   ├── fast_lio_ros2/      # Git Submodule: FAST_LIO2 (ROS2 Branch)
+├───unitree_ros2/       # Git Submodule: Official Unitree SDK
+├───hesai_ros_driver_2/ # Git Submodule: Official Hesai XT16 Driver
+├───fast_lio_ros2/      # Git Submodule: FAST_LIO2 (ROS2 Branch)
 │   └── livox_ros_driver2/  # Git Submodule: Dependency for FAST_LIO messages
 └── GEMINI.md               # This documentation
 ```
 
 ## Milestone Status (March 19, 2026)
-- **Submodules Integrated**: `unitree_ros2`, `fast_lio_ros2`, and `livox_ros_driver2` have been added.
+- **Submodules Integrated**: `unitree_ros2`, `fast_lio_ros2`, `livox_ros_driver2`, and `hesai_ros_driver_2` have been added.
 - **Compilation Fixes**: `livox_ros_driver2/package.xml` was manually created to ensure ROS 2 compatibility and visibility for `colcon`.
 - **Bridge Analysis**: Identified that `SportModeCmd` should be used instead of `LowCmd` for high-level navigation control.
 
@@ -93,6 +94,7 @@ On your laptop (connected via Ethernet to the robot):
     *   `base_link` -> `lidar_link` (static transform)
 
 ## TODO / Roadmap
+- [x] Integrate ROS drivers for Hesai XT16 LiDAR.
 - [ ] Implement `go2_nav_bridge` node for `cmd_vel` to `SportModeCmd` translation.
 - [ ] Configure `FAST_LIO2` parameters for Hesai XT16 (noise, extrinsics).
 - [ ] Integrate Nav2 parameters for quadrupedal movement.

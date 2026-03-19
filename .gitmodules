@@ -8,3 +8,6 @@
 [submodule "src/livox_ros_driver2"]
 	path = src/livox_ros_driver2
 	url = https://github.com/Livox-SDK/livox_ros_driver2.git
+[submodule "src/hesai_ros_driver_2"]
+	path = src/hesai_ros_driver_2
+	url = https://github.com/HesaiTechnology/HesaiLidar_ROS_2.0.git
