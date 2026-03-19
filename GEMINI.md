@@ -67,6 +67,24 @@ On your laptop (connected via Ethernet to the robot):
     rviz2 -d src/go2_nav_bridge/rviz/nav2.rviz
     ```
 
+## Multi-Machine Development (Desktop vs Laptop)
+
+To work seamlessly across different machines (e.g., Desktop at home and Laptop in the lab), follow this workflow:
+
+### 1. Synchronization via Git
+*   **A casa (Desktop):** Esegui `git push` per caricare le modifiche su un repository remoto (es. GitHub).
+*   **In Lab (Laptop):** Esegui `git pull` per scaricare l'ultimo stato del progetto.
+*   **Coerenza:** Tutte le modifiche fatte "sul campo" in laboratorio devono essere committate e pusshate per ritrovarle sul desktop a casa.
+
+### 2. Coerenza dell'ambiente con Docker
+*   Grazie a **Docker**, non è necessario installare ROS 2 o Nav2 localmente su ogni macchina.
+*   Il comando `docker compose up --build` garantisce che l'ambiente sia identico sia sul desktop che sul laptop, riducendo gli errori di "funziona solo sulla mia macchina".
+
+### 3. Configurazione Rete (Lab Setup)
+*   **Connessione Ethernet:** Collega il laptop al robot Unitree Go2 via cavo Ethernet.
+*   **IP Statico Laptop:** Configura la scheda di rete del laptop sullo stesso subnet del robot (es. `192.168.123.10`). L'IP del robot è solitamente `192.168.123.161` o similia.
+*   **Docker Host Mode:** Il file `docker-compose.yml` usa `network_mode: host`, permettendo al container di comunicare direttamente con la rete del robot.
+
 ## Development Conventions
 *   **Bridge Node:** All custom logic for navigation command translation should reside in `src/go2_nav_bridge`.
 *   **TF Tree:**
