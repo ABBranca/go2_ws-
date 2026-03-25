@@ -41,6 +41,7 @@ go2_ws/
 - **Submodules Integrated**: `unitree_ros2`, `fast_lio_ros2`, `livox_ros_driver2`, and `hesai_ros_driver_2` have been added.
 - **Compilation Fixes**: `livox_ros_driver2/package.xml` was manually created to ensure ROS 2 compatibility and visibility for `colcon`.
 - **Bridge Analysis**: Identified that `SportModeCmd` should be used instead of `LowCmd` for high-level navigation control.
+- **Physical Testing**: The SLAM suite (FAST_LIO2 + Hesai driver) has not yet been tested on the physical robot.
 
 ## FAST-LIO2 Documentation
 **FAST-LIO2** (Fast LiDAR-Inertial Odometry) è un framework di odometria e mapping LiDAR-inerziale veloce, robusto e versatile.
