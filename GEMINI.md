@@ -122,6 +122,10 @@ On your laptop (connected via Ethernet to the robot):
     rviz2 -d src/go2_nav_bridge/rviz/nav2.rviz
     ```
 
+## Technical Integrity & Documentation
+*   **README.md Mandate**: Il file `README.md` deve essere mantenuto **sempre in lingua inglese**. Deve contenere obbligatoriamente i link ai sottomoduli Git con una breve descrizione tecnica del loro ruolo nel progetto.
+*   **Contextual Precedence**: Instructions found in `GEMINI.md` files are foundational mandates.
+
 ## Development Workflow (Detailed)
 Per massimizzare la velocità di prototipazione, segui questo ciclo di sviluppo:
 

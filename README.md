@@ -90,11 +90,14 @@ docker save go2_nav_stack:latest | ssh -C unitree@192.168.123.18 'docker load'
 
 ---
 
-## Workspace Structure (Submodules)
-*   **unitree_ros2**: Official SDK for Unitree hardware communication.
-*   **hesai_ros_driver_2**: Driver for the Hesai XT16 LiDAR.
-*   **fast_lio_ros2**: LiDAR-Inertial Odometry framework (SLAM).
-*   **go2_nav_bridge**: (Local Package) Translates Nav2 `cmd_vel` commands into Unitree SDK commands.
+## Workspace Structure & Submodules
+This project integrates several key technologies as Git submodules:
+
+*   **[unitree_ros2](https://github.com/unitreerobotics/unitree_ros2)**: Official ROS 2 SDK for Unitree robots (Go2, B2, H1). It handles the communication with the robot's hardware and motion services.
+*   **[hesai_ros_driver_2](https://github.com/HesaiTechnology/HesaiLidar_ROS_2.0)**: Official driver for Hesai LiDARs (XT16, XT32, etc.). It publishes `sensor_msgs/msg/PointCloud2` for FAST_LIO2.
+*   **[fast_lio_ros2](https://github.com/hku-mars/FAST_LIO/tree/ROS2)**: A fast and robust LiDAR-Inertial Odometry framework. It provides high-frequency odometry and local mapping by fusing LiDAR and IMU data.
+*   **[livox_ros_driver2](https://github.com/Livox-SDK/livox_ros_driver2)**: Used to provide custom message types required by FAST_LIO for solid-state LiDAR support (if needed) and general message compatibility.
+*   **go2_nav_bridge**: (Local Package) A custom node that translates standard Nav2 movement commands (`cmd_vel`) into Unitree SDK commands.
 
 ---
 **Contacts**: For technical questions or support, contact [ABBranca](https://github.com/ABBranca).
