@@ -27,22 +27,40 @@ This project integrates several key technologies as Git submodules:
 
 ### 1. Hardware Requirements
 *   **Robot**: Unitree Go2.
-*   **PC/Laptop**: Ubuntu 22.04 installed (recommended) and an Ethernet port.
-*   **Ethernet Cable**: To connect the PC to the robot.
+*   **PC/Laptop**: Ubuntu 22.04 or Arch Linux (recommended) with an Ethernet port.
+*   **Ethernet Cable**: For the initial setup.
 
-### 2. Installing Docker
-If you don't have Docker, install it with these simple commands in your terminal:
+### 2. Connecting the Robot to Wi-Fi
+To connect the Go2 to your laboratory network (e.g., "ARSCONTROL"):
+1.  **Mobile App**: Use the **Unitree Go** app on your smartphone (Android is recommended if iOS times out).
+2.  **Permissions**: Ensure Bluetooth, GPS/Location, and Local Network permissions are granted.
+3.  **Station Mode**: Select "Wi-Fi Mode" in the app, pick your SSID, and enter the password.
+4.  **Pairing**: If it fails, try pressing the robot's power button **3 times quickly** to force pairing mode.
+
+### 3. Installing Docker (on Laptop)
+... (standard installation instructions) ...
+
+---
+
+## Deployment Workflow (Piano B)
+Since the robot's internal network may have DNS or registry restrictions, we use the **Docker Save/Load via SSH** method.
+
+### 1. Build the ARM64 Image (on Laptop)
+Ensure you are building for the robot's architecture:
 ```bash
-sudo apt update
-sudo apt install docker.io docker-compose -y
-sudo usermod -aG docker $USER
+docker buildx build --platform linux/arm64 -t go2_nav_stack:latest --load .
 ```
-*Restart your computer after these commands.*
+
+### 2. Transfer and Load (to Robot)
+Pipe the image directly to the robot over the network:
+```bash
+docker save go2_nav_stack:latest | ssh -C unitree@<ROBOT_IP> 'docker load'
+```
 
 ---
 
 ## How to Start the System
-
+...
 ### Step 1: Connecting to the Robot
 1.  Connect the Ethernet cable between your laptop and the Go2 robot.
 2.  Configure your laptop's network:

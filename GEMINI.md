@@ -37,11 +37,12 @@ go2_ws/
 └── GEMINI.md               # This documentation
 ```
 
-## Milestone Status (March 19, 2026)
-- **Submodules Integrated**: `unitree_ros2`, `fast_lio_ros2`, `livox_ros_driver2`, and `hesai_ros_driver_2` have been added.
-- **Compilation Fixes**: `livox_ros_driver2/package.xml` was manually created to ensure ROS 2 compatibility and visibility for `colcon`.
-- **Bridge Analysis**: Identified that `SportModeCmd` should be used instead of `LowCmd` for high-level navigation control.
-- **Physical Testing**: The SLAM suite (FAST_LIO2 + Hesai driver) has not yet been tested on the physical robot.
+## Milestone Status (March 27, 2026)
+- **Wi-Fi Connected**: Successfully connected the robot to the laboratory network ("ARSCONTROL") using the Unitree Go app (Android workaround).
+- **Submodules Initialized**: All submodules (`unitree_ros2`, `fast_lio_ros2`, `livox_ros_driver2`, and `hesai_ros_driver_2`) are now fully initialized and updated.
+- **Network Routing**: Established a temporary internet bridge from the developer's laptop to the robot via Ethernet to facilitate setup and DNS resolution.
+- **Deployment Strategy**: Adopted the "Docker Save/Load via SSH" method (Piano B) to deploy the navigation stack, bypassing DNS and external registry dependencies on the robot.
+- **Onboard System**: Identified that the robot's native system runs ROS 2 Foxy and ROS 1 Noetic. The navigation stack will run in a ROS 2 Humble Docker container for compatibility.
 
 ## FAST-LIO2 Documentation
 **FAST-LIO2** (Fast LiDAR-Inertial Odometry) è un framework di odometria e mapping LiDAR-inerziale veloce, robusto e versatile.
@@ -96,7 +97,9 @@ On your laptop (connected via Ethernet to the robot):
 
 ## TODO / Roadmap
 - [x] Integrate ROS drivers for Hesai XT16 LiDAR.
+- [x] Connect the robot to the laboratory Wi-Fi (ARSCONTROL).
+- [x] Initialize and update all Git submodules.
 - [ ] Implement `go2_nav_bridge` node for `cmd_vel` to `SportModeCmd` translation.
+- [ ] Build and deploy the ROS 2 Humble Docker stack using `docker save/load` (Piano B).
 - [ ] Configure `FAST_LIO2` parameters for Hesai XT16 (noise, extrinsics).
 - [ ] Integrate Nav2 parameters for quadrupedal movement.
-- [ ] Set up Docker image with all dependencies (SDK, FAST_LIO, Nav2).
