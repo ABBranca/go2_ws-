@@ -37,6 +37,46 @@ The primary challenge is routing ROS 2 messages from the **Dock** (where the SLA
 *   **External Network**: Wi-Fi LAN (e.g., `10.0.0.0/24`).
 *   **The Blocker**: Since SSH is disabled on the MCU (`.161`), we cannot easily enable IP Forwarding or NAT rules on the robot's gateway. We must rely on ROS 2 DDS configurations (Discovery Server or Initial Peers) to traverse the network.
 
+## Proposed Strategic Decisions
+### 1. Dedicated Wi-Fi Dongle for Expansion Dock (Preferred)
+Dato che l'accesso SSH all'MCU (`.161`) è precluso, la configurazione di un bridge o di regole di routing/NAT a livello kernel non è attuabile. 
+*   **Proposta**: Installare un dongle Wi-Fi USB direttamente sull'Expansion Dock (Orin/PC).
+*   **Vantaggi**: 
+    *   Il Dock otterrà un proprio indirizzo IP sulla rete di laboratorio ("ARSCONTROL").
+    *   Il laptop e il Dock saranno sulla stessa sottorete L2/L3, eliminando la necessità di attraversare l'MCU per la telemetria ROS 2.
+    *   **Semplificazione immediata della comunicazione DDS senza necessità di configurazioni complesse (Discovery Server).
+    *   **Hardware Consigliato**: **Alfa Network AWUS036ACM** (chipset Mediatek MT7612U) o modelli con supporto Linux nativo (evitare chipset che richiedono compilazione driver manuale su Jetson/ARM).
+    *   **Stato**: Proposta da discutere con i supervisori per approvazione e acquisto hardware. (Pending meeting con i superiori).
+
+## Development Workflow (Current Strategy)
+Per massimizzare la velocità di prototipazione in attesa dell'hardware Wi-Fi:
+1.  **Physical Link**: Robot collegato al laptop via cavo Ethernet (RJ45 su Expansion Dock).
+2.  **Code Sync**: Sviluppo locale su laptop -> Sincronizzazione via `rsync` o `scp` verso `/home/unitree/go2_ws/src` sul Dock.
+3.  **Docker Dev Mode**: Utilizzo di un `docker-compose.yml` provvisorio con **mount dei volumi** per riflettere istantaneamente le modifiche al codice senza rebuild dell'immagine.
+    *   *Nota*: Il volume risiede fisicamente sul Dock e viene mappato nel container.
+4.  **Remote Visualization**: Rviz2 eseguito su laptop puntando all'IP del Dock (`192.168.123.18`).
+
+## Upcoming Tasks & Thesis Analysis
+Verrà fornita una tesi di un precedente studente sul binomio Unitree Go2 + LiDAR. Obiettivi dell'analisi:
+*   **Networking**: Identificare come è stata risolta la connettività Wi-Fi e la telemetria remota (DDS, Bridge, o hardware dedicato).
+*   **Calibration**: Estrarre le matrici estrinseche (TF) tra il corpo del Go2 e il LiDAR Hesai.
+*   **FAST_LIO2 Tuning**: Recuperare i parametri di rumore (noise) dell'IMU e configurazioni specifiche per il sensore XT16.
+
+## External Resources & Community Solutions
+### 1. Key GitHub Repositories
+*   **[abizovnuralem/go2_ros2_sdk](https://github.com/abizovnuralem/go2_ros2_sdk)**: Supporta **WebRTC** per telemetria fluida via Wi-Fi. Utile se il DDS standard risulta troppo pesante/instabile.
+*   **[unitree_go2_nav](https://github.com/Sayantani-Bhattacharya/unitree_go2_nav)**: Esempio specifico di navigazione autonoma con Nav2 e SLAM RTAB-Map su Go2.
+*   **[Unitree-Go2-Robot/go2_robot](https://github.com/Unitree-Go2-Robot/go2_robot)**: Integrazione standard per `cmd_vel` e URDF completo.
+
+### 2. Networking Strategies Identified
+*   **WebRTC/DDS Hybrid**: L'uso di WebRTC per i flussi video/Lidar e DDS per i comandi di controllo sembra essere il gold standard per il wireless.
+*   **IP Forwarding on Jetson**: Se si usa un dongle Wi-Fi, è possibile trasformare il Jetson (`.18`) in un gateway per raggiungere l'MCU (`.161`):
+    ```bash
+    sudo sysctl -w net.ipv4.ip_forward=1
+    sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+    ```
+*   **Travel Router Option**: Un router esterno (es. GL.iNet) collegato alla porta Ethernet del Go2 per creare un bridge L2 trasparente (soluzione hardware alternativa al dongle).
+
 ---
 
 ## FAST-LIO2 Documentation
