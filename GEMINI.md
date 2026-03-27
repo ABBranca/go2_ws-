@@ -38,7 +38,7 @@ go2_ws/
 ```
 
 ## Milestone Status (March 27, 2026)
-- **Wi-Fi Connected**: Successfully connected the robot to the laboratory network ("ARSCONTROL") using the Unitree Go app (Android workaround).
+- **Wi-Fi Connected**: Successfully connected the robot to the laboratory network ("ARSCONTROL") using the Unitree Go app (Android workaround). *Note: The physical "3-click" pairing shortcut was found to be ineffective for this robot.*
 - **Submodules Initialized**: All submodules (`unitree_ros2`, `fast_lio_ros2`, `livox_ros_driver2`, and `hesai_ros_driver_2`) are now fully initialized and updated.
 - **Network Routing**: Established a temporary internet bridge from the developer's laptop to the robot via Ethernet to facilitate setup and DNS resolution.
 - **Deployment Strategy**: Adopted the "Docker Save/Load via SSH" method (Piano B) to deploy the navigation stack, bypassing DNS and external registry dependencies on the robot.

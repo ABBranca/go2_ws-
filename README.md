@@ -35,7 +35,7 @@ To connect the Go2 to your laboratory network (e.g., "ARSCONTROL"):
 1.  **Mobile App**: Use the **Unitree Go** app on your smartphone (Android is recommended if iOS times out).
 2.  **Permissions**: Ensure Bluetooth, GPS/Location, and Local Network permissions are granted.
 3.  **Station Mode**: Select "Wi-Fi Mode" in the app, pick your SSID, and enter the password.
-4.  **Pairing**: If it fails, try pressing the robot's power button **3 times quickly** to force pairing mode.
+4.  **Pairing**: If the app fails to find the robot, ensure you are using an Android device (preferred). *Note: The physical shortcut of pressing the power button 3 times quickly has been tested and found ineffective for this unit.*
 
 ### 3. Installing Docker (on Laptop)
 ... (standard installation instructions) ...
