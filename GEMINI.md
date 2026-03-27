@@ -122,6 +122,21 @@ On your laptop (connected via Ethernet to the robot):
     rviz2 -d src/go2_nav_bridge/rviz/nav2.rviz
     ```
 
+## Development Workflow (Detailed)
+Per massimizzare la velocità di prototipazione, segui questo ciclo di sviluppo:
+
+1.  **Codifica sul Laptop**: Modifica il codice sorgente (C++, Python, YAML) localmente sul tuo laptop.
+2.  **Sincronizzazione Rapida**: Esegui `./sync_to_dog.sh` dalla root del progetto sul laptop. Questo invierà solo i file modificati al Dock (`192.168.123.18`) via Ethernet.
+3.  **Compilazione (sul Robot)**: Accedi al container Docker sul robot e compila le modifiche:
+    ```bash
+    docker exec -it go2_navigation bash
+    colcon build --symlink-install
+    source install/setup.bash
+    ```
+    *Nota: Grazie a `--symlink-install`, le modifiche ai file Python/YAML sono istantanee senza necessità di ricompilare.*
+4.  **Esecuzione**: Lancia i nodi desiderati all'interno del container.
+5.  **Visualizzazione (Laptop)**: Apri RViz2 localmente sul laptop per monitorare i dati in tempo reale.
+
 ## Development Conventions
 *   **Bridge Node:** All custom logic for navigation command translation should reside in `src/go2_nav_bridge`.
 *   **Message Types**: Prefer high-level `SportModeCmd` for movement to leverage the robot's onboard stability controllers.

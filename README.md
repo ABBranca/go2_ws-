@@ -41,11 +41,38 @@ To connect the Go2 to your laboratory network (e.g., "ARSCONTROL"):
 ... (standard installation instructions) ...
 
 ---
+## Development Workflow (Rapid Prototyping)
+To speed up development and avoid rebuilding Docker images every time you change the code, follow this workflow:
 
-## Deployment Workflow (Piano B)
-Since the robot's internal network may have DNS or registry restrictions, we use the **Docker Save/Load via SSH** method.
+### 1. Synchronize Code (Laptop -> Robot)
+Modify your code locally on your laptop, then run the sync script to send only the changes to the robot via Ethernet:
+```bash
+./sync_to_dog.sh
+```
+
+### 2. Compile and Run (on Robot)
+Access the running container on the robot to compile your changes:
+```bash
+docker exec -it go2_navigation bash
+colcon build --symlink-install
+source install/setup.bash
+# Run your launch files here
+```
+*Note: The `--symlink-install` flag allows Python and YAML changes to take effect immediately without recompiling.*
+
+### 3. Remote Visualization (on Laptop)
+Open Rviz2 on your laptop to monitor the robot's state:
+```bash
+rviz2 -d src/go2_nav_bridge/rviz/nav2.rviz
+```
+
+---
+
+## Deployment Workflow (Piano B - Final Image)
+When development is complete and you want to create a standalone image for the robot:
 
 ### 1. Build the ARM64 Image (on Laptop)
+...
 Ensure you are building for the robot's architecture:
 ```bash
 docker buildx build --platform linux/arm64 -t go2_nav_stack:latest --load .
