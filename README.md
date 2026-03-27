@@ -59,19 +59,26 @@ docker save go2_nav_stack:latest | ssh -C unitree@<ROBOT_IP> 'docker load'
 
 ---
 
-## How to Start the System
-...
 ### Step 1: Connecting to the Robot
-1.  Connect the Ethernet cable between your laptop and the Go2 robot.
+1.  Connect the Ethernet cable between your laptop and the **Expansion Dock** (RJ45 port on the back).
 2.  Configure your laptop's network:
-    *   Go to Ubuntu's network settings.
-    *   Select the wired connection (Ethernet) and set **IPv4 to "Manual"**.
-    *   **Address**: `192.168.123.10`
+    *   **IPv4 Manual**: `192.168.123.10`
     *   **Netmask**: `255.255.255.0`
     *   **Gateway**: `192.168.123.1`
-3.  Verify the connection by typing in the terminal: `ping 192.168.123.161` (you should see response times).
+3.  **Critical IP Addresses**:
+    *   `192.168.123.161`: Motion Control Unit (MCU). Has Wi-Fi but **SSH is blocked**.
+    *   `192.168.123.18`: Expansion Dock (Orin). This is where you SSH to run code.
 
-### Step 2: Download the Project and Submodules
+---
+
+## Current Development Challenges (March 2026)
+*   **Wireless Bridge**: The robot's MCU has the Wi-Fi adapter, but the Expansion Dock (where the navigation stack runs) is connected only via internal Ethernet. 
+*   **SSH Block**: Direct SSH to the MCU (`.161`) is refused, preventing easy configuration of network routing/NAT.
+*   **Goal**: Enable wireless Rviz2 telemetry by configuring ROS 2 DDS to route through the MCU's network interface.
+
+---
+
+## Download the Project and Submodules
 Open the terminal and type:
 ```bash
 git clone --recursive https://github.com/ABBranca/go2_ws.git

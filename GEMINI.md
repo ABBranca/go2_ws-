@@ -13,36 +13,31 @@ This workspace is designed to enable autonomous navigation for the Unitree Go2 q
 *   **Visualization:** Rviz2 (Remote laptop via Ethernet)
 
 ## Architecture
-The system consists of the following components:
-1.  **Unitree ROS 2 Interface:** Communicates with the robot's proprietary SDK for motion control and state feedback.
-2.  **FAST_LIO2:** Processes point clouds from the Hesai XT16 to provide high-frequency odometry and local mapping.
-3.  **Nav2 Bridge (`go2_nav_bridge`):** A custom node that translates standard `geometry_msgs/Twist` commands from Nav2 into `unitree_go/msg/SportModeCmd` to control the robot's locomotion.
-4.  **Nav2 Stack:** Handles path planning, obstacle avoidance, and goal management.
-
-## Project Structure
-```text
-go2_ws/
-├── docker/                 # Docker configuration for onboard deployment
-│   ├── Dockerfile          # ROS 2 Humble base image with Nav2
-│   └── docker-compose.yml  # Manages the navigation container
-├── src/
-│   ├── go2_nav_bridge/     # ROS 2 package for Nav2-to-SDK translation
-│   │   ├── src/bridge_node.cpp
-│   │   ├── CMakeLists.txt
-│   │   └── package.xml
-├───unitree_ros2/       # Git Submodule: Official Unitree SDK
-├───hesai_ros_driver_2/ # Git Submodule: Official Hesai XT16 Driver
-├───fast_lio_ros2/      # Git Submodule: FAST_LIO2 (ROS2 Branch)
-│   └── livox_ros_driver2/  # Git Submodule: Dependency for FAST_LIO messages
-└── GEMINI.md               # This documentation
-```
+The system consists of two primary onboard computing units connected via an internal Ethernet bridge:
+1.  **Integrated Computer (MCU) - `192.168.123.161`**: 
+    *   Handles motion control and low-level SDK functions.
+    *   **Connectivity**: Equipped with a Wireless adapter (connected to laboratory Wi-Fi).
+    *   **Access**: SSH is currently **refused** on this unit (closed system).
+2.  **Expansion Dock (Orin/PC) - `192.168.123.18`**: 
+    *   Runs the high-level navigation stack (ROS 2 Humble in Docker).
+    *   **Connectivity**: No native Wi-Fi. Connected to the MCU via internal Ethernet and to the developer laptop via external RJ45.
+    *   **Role**: Processes FAST_LIO2, Nav2, and the `go2_nav_bridge`.
 
 ## Milestone Status (March 27, 2026)
-- **Wi-Fi Connected**: Successfully connected the robot to the laboratory network ("ARSCONTROL") using the Unitree Go app (Android workaround). *Note: The physical "3-click" pairing shortcut was found to be ineffective for this robot.*
-- **Submodules Initialized**: All submodules (`unitree_ros2`, `fast_lio_ros2`, `livox_ros_driver2`, and `hesai_ros_driver_2`) are now fully initialized and updated.
-- **Network Routing**: Established a temporary internet bridge from the developer's laptop to the robot via Ethernet to facilitate setup and DNS resolution.
-- **Deployment Strategy**: Adopted the "Docker Save/Load via SSH" method (Piano B) to deploy the navigation stack, bypassing DNS and external registry dependencies on the robot.
-- **Onboard System**: Identified that the robot's native system runs ROS 2 Foxy and ROS 1 Noetic. The navigation stack will run in a ROS 2 Humble Docker container for compatibility.
+- [x] **Wi-Fi Connected**: MCU successfully connected to "ARSCONTROL" via the Unitree Go app.
+- [x] **Submodules Initialized**: All submodules are fully updated.
+- [x] **Dock Access**: Established SSH access to the Expansion Dock (`192.168.123.18`).
+- [x] **Networking Diagnosis**: Identified that the MCU does not automatically bridge ROS 2 traffic from the internal Ethernet to the Wi-Fi interface.
+- [ ] **Wireless Telemetry**: Resolve the "Connection Refused" on MCU or configure a DDS Discovery Server/Static Peers to route Rviz2 data through the MCU's Wi-Fi.
+
+## Networking Topology & Challenges
+The primary challenge is routing ROS 2 messages from the **Dock** (where the SLAM/Nav nodes live) to a **Remote Laptop** via the **MCU's Wi-Fi** adapter. 
+
+*   **Internal Network**: `192.168.123.0/24`.
+*   **External Network**: Wi-Fi LAN (e.g., `10.0.0.0/24`).
+*   **The Blocker**: Since SSH is disabled on the MCU (`.161`), we cannot easily enable IP Forwarding or NAT rules on the robot's gateway. We must rely on ROS 2 DDS configurations (Discovery Server or Initial Peers) to traverse the network.
+
+---
 
 ## FAST-LIO2 Documentation
 **FAST-LIO2** (Fast LiDAR-Inertial Odometry) è un framework di odometria e mapping LiDAR-inerziale veloce, robusto e versatile.
