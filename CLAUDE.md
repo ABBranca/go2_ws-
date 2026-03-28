@@ -14,7 +14,7 @@ The standard cycle is: edit locally → sync to robot → build in container →
 **2. Build inside the Docker container on the robot:**
 ```bash
 docker exec -it go2_navigation bash
-colcon build --symlink-install   # Python/YAML changes are instant, no rebuild needed
+colcon build --symlink-install   # NOTE: instant only for ament_cmake packages; ament_python requires rebuild on YAML/launch changes
 source install/setup.bash
 ```
 
@@ -111,11 +111,18 @@ Hesai XT16 (192.168.1.201:2368 UDP)
 ## Key Implementation Notes
 
 - **Bridge node:** Use `SportModeCmd` (high-level) rather than `LowCmd` (joint-level) for locomotion. The `Twist → SportModeCmd` mapping in `go2_nav_bridge` is not yet implemented.
+  - Mapping: `mode=2` (VelocityMove), `velocity[0]=linear.x`, `velocity[1]=linear.y`, `yaw_speed=angular.z`
+  - Clamp values: linear ±1.0 m/s, angular ±1.0 rad/s. QoS must match Nav2 (`RELIABLE`, depth 10).
+  - Package type must be `ament_cmake` (not `ament_python`) so YAML/launch files are symlinked correctly.
 - **FAST-LIO2 config for Hesai XT16:** No native config exists — extrinsic calibration and IMU noise parameters must be adapted from an existing YAML in `src/fast_lio_ros2/config/`.
-- **unitree_ros2 ROS version:** The `setup.sh` scripts in the submodule target Foxy; ignore them and source the Humble workspace.
+- **unitree_ros2 ROS version:** The `setup.sh` scripts in the submodule target Foxy; ignore them and source the Humble workspace. Deprecation warnings during build (`ament_export_interfaces`, `rosidl_target_interfaces`) are harmless.
 - **Hesai launch file:** `start.launch` is ROS 1 XML — a ROS 2 Python equivalent is needed.
 - **livox_ros_driver2:** A `package.xml` was manually added to make it compile under ament_cmake; the upstream repo does not include one.
 - **README.md mandate:** Must stay in English and always include links to submodules with short descriptions (per GEMINI.md).
+- **CycloneDDS in Docker:** Without explicit config, CycloneDDS picks a network interface randomly — causes intermittent node discovery failures. Always provide a `cyclonedds.xml` with `<NetworkInterface name="eth0" />` and set `CYCLONEDDS_URI` in the container.
+- **TF static transform:** Publish `base_link → lidar_link` via `static_transform_publisher` or `robot_state_publisher` (URDF). In Humble, static TFs must be on `/tf_static` only — do not publish them periodically on `/tf`.
+- **Nav2 for quadruped:** Do not use default NavFn + DWB (differential-drive only). Use `SmacPlannerHybrid` + MPPI controller. Key param: `minimum_turning_radius` (0.3–0.5 m for Go2).
+- **Nav2 lifecycle manager:** With FAST-LIO2 active, omit `map_server` and `amcl` from `node_names` — FAST-LIO2 already publishes `map → odom → base_link`. Only needed: `[controller_server, planner_server, behavior_server, bt_navigator]`.
 
 ## Development Conventions
 
@@ -157,8 +164,12 @@ A thesis from a previous student on the Unitree Go2 + LiDAR combination will be 
 - [x] Initialize and update all Git submodules
 - [x] Establish SSH access to Expansion Dock (`192.168.123.18`)
 - [x] Diagnose MCU networking (DDS traffic not bridged to Wi-Fi)
-- [ ] Implement `go2_nav_bridge`: `cmd_vel` → `SportModeCmd` translation
+- [ ] Create `cyclonedds.xml` with explicit `<NetworkInterface>` and mount it in Docker Compose via `CYCLONEDDS_URI`
+- [ ] Implement `go2_nav_bridge`: `cmd_vel` → `SportModeCmd` translation (mode=2, see Key Implementation Notes)
+- [ ] Verify `go2_nav_bridge` is `ament_cmake` (not `ament_python`) for correct `--symlink-install` behavior on YAML/launch files
+- [ ] Publish `base_link → lidar_link` static TF via `static_transform_publisher` in the bridge launch file
+- [ ] Configure Nav2 with `SmacPlannerHybrid` planner + MPPI controller (replace default NavFn + DWB)
+- [ ] Configure Nav2 lifecycle manager `node_names` — exclude `map_server` and `amcl` (FAST-LIO2 handles localization)
 - [ ] Configure FAST-LIO2 YAML for Hesai XT16 (extrinsics + IMU noise)
 - [ ] Resolve wireless telemetry (Wi-Fi dongle on Dock or DDS Discovery Server)
-- [ ] Integrate Nav2 parameters for quadrupedal movement
 - [ ] Build and deploy final ARM64 Docker image (`docker save/load`)
