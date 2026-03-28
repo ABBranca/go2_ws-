@@ -11,7 +11,7 @@ This project integrates several key technologies as Git submodules:
 *   **[hesai_ros_driver_2](https://github.com/HesaiTechnology/HesaiLidar_ROS_2.0)**: Official driver for Hesai LiDARs (XT16, XT32, etc.). It publishes `sensor_msgs/msg/PointCloud2` for FAST_LIO2.
 *   **[fast_lio_ros2](https://github.com/hku-mars/FAST_LIO/tree/ROS2)**: A fast and robust LiDAR-Inertial Odometry framework. It provides high-frequency odometry and local mapping by fusing LiDAR and IMU data.
 *   **[livox_ros_driver2](https://github.com/Livox-SDK/livox_ros_driver2)**: Used to provide custom message types required by FAST_LIO for solid-state LiDAR support (if needed) and general message compatibility.
-*   **go2_nav_bridge**: (Local Package) A custom node that translates standard Nav2 movement commands (`cmd_vel`) into Unitree SDK commands.
+*   **go2_nav_bridge**: (Local Package) Translates Nav2 `cmd_vel` (`geometry_msgs/Twist`) into Unitree `SportModeCmd` (mode=2, VelocityMove). Implements clamping (±1.0 m/s linear, ±1.0 rad/s angular), RELIABLE QoS matching Nav2, and a 200 ms safety watchdog that publishes zero velocity on `cmd_vel` timeout. Built as `ament_cmake`.
 
 ---
 
@@ -74,7 +74,17 @@ source install/setup.bash
 ros2 launch go2_nav_bridge mapping.launch.py
 ```
 
-### C. Remote Visualization (on Laptop)
+### C. Local Development Toolchain (on Laptop)
+To enable clangd-based IntelliSense without a full ROS 2 installation, use a Distrobox container with ROS 2 Humble:
+```bash
+# Generate compile_commands.json inside the Distrobox container
+distrobox enter humble-dev
+colcon build --symlink-install --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+cp build/compile_commands.json ../compile_commands.json  # workspace root
+```
+`compile_commands.json` is listed in `.gitignore` (generated artifact). The `.vscode/settings.json` file configures the clangd path to the binary inside the Distrobox container.
+
+### D. Remote Visualization (on Laptop)
 Open Rviz2 on your laptop to monitor the robot:
 ```bash
 source /opt/ros/humble/setup.bash

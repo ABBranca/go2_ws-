@@ -1,8 +1,51 @@
+# ROS 2 / Colcon
 build/
 install/
 log/
+.colcon/
+COLCON_IGNORE
+
+# Python
 *.pyc
+*.pyo
 __pycache__/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# C / C++
+*.o
+*.a
+*.so
+*.out
+CMakeCache.txt
+CMakeFiles/
+compile_commands.json
+
+# ROS bags (large binary files)
+*.bag
+*.bag.active
+*.db3
+
+# Docker
+.env
+
+# Editors & IDEs
 .vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.orig
+
+# Claude Code (local config & memory)
+.claude/
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Secrets
 .ghtoken.txt
+*.pem
+*.key
