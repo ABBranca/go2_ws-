@@ -1,159 +1,164 @@
-# Unitree Go2 ROS 2 Navigation Workspace
+# GEMINI.md
 
-## Project Overview
-This workspace is designed to enable autonomous navigation for the Unitree Go2 quadruped robot using **ROS 2 Humble**. It integrates the Unitree Go2 SDK, the `unitree_ros2` package, and `FAST_LIO2` for LiDAR-based SLAM with the Hesai XT16 sensor.
+This file provides guidance to Gemini CLI when working with code in this repository.
 
-### Core Technologies
-*   **Robot:** Unitree Go2
-*   **LiDAR:** Hesai XT16 (16-channel)
-*   **ROS 2 Version:** Humble
-*   **SLAM:** [FAST_LIO2 (ROS 2)](https://github.com/hku-mars/FAST_LIO/tree/ROS2)
-*   **Navigation:** Nav2
-*   **Deployment:** Docker (Onboard computer)
-*   **Visualization:** Rviz2 (Remote laptop via Ethernet)
+## Development Workflow
+
+The standard cycle is: edit locally → sync to robot → build in container → visualize on laptop.
+
+**1. Sync code to robot (Ethernet):**
+```bash
+./sync_to_dog.sh   # rsync src/ → unitree@192.168.123.18
+```
+
+**2. Build inside the Docker container on the robot:**
+```bash
+docker exec -it go2_navigation bash
+colcon build --symlink-install   # Python/YAML changes are instant, no rebuild needed
+source install/setup.bash
+```
+
+**3. Visualize remotely (on laptop):**
+```bash
+source /opt/ros/humble/setup.bash
+export ROS_DOMAIN_ID=1
+rviz2 -d src/go2_nav_bridge/rviz/nav2.rviz
+```
+
+## Build & Deploy
+
+**Initial Docker start (on robot):**
+```bash
+cd docker && docker compose up --build -d
+```
+
+**Build a single package:**
+```bash
+colcon build --symlink-install --packages-select go2_nav_bridge
+```
+
+**Final immutable image (ARM64, when development is complete):**
+```bash
+docker buildx build --platform linux/arm64 -t go2_nav_stack:latest --load .
+docker save go2_nav_stack:latest | ssh -C unitree@192.168.123.18 'docker load'
+```
+
+**After cloning — initialize submodules:**
+```bash
+git submodule update --init --recursive
+```
+
+## Launch
+
+```bash
+# Hesai XT16 LiDAR driver
+ros2 launch hesai_ros_driver_2 start.py  # ROS 2 conversion of start.launch
+
+# FAST-LIO2 SLAM
+ros2 launch fast_lio mapping.launch.py config_file:=mid360.yaml rviz:=true
+```
 
 ## Architecture
-The system consists of two primary onboard computing units connected via an internal Ethernet bridge:
-1.  **Integrated Computer (MCU) - `192.168.123.161`**: 
-    *   Handles motion control and low-level SDK functions.
-    *   **Connectivity**: Equipped with a Wireless adapter (connected to laboratory Wi-Fi).
-    *   **Access**: SSH is currently **refused** on this unit (closed system).
-2.  **Expansion Dock (Orin/PC) - `192.168.123.18`**: 
-    *   Runs the high-level navigation stack (ROS 2 Humble in Docker).
-    *   **Connectivity**: No native Wi-Fi. Connected to the MCU via internal Ethernet and to the developer laptop via external RJ45.
-    *   **Role**: Processes FAST_LIO2, Nav2, and the `go2_nav_bridge`.
 
-## Milestone Status (March 27, 2026)
-- [x] **Wi-Fi Connected**: MCU successfully connected to "ARSCONTROL" via the Unitree Go app.
-- [x] **Submodules Initialized**: All submodules are fully updated.
-- [x] **Dock Access**: Established SSH access to the Expansion Dock (`192.168.123.18`).
-- [x] **Networking Diagnosis**: Identified that the MCU does not automatically bridge ROS 2 traffic from the internal Ethernet to the Wi-Fi interface.
-- [ ] **Wireless Telemetry**: Resolve the "Connection Refused" on MCU or configure a DDS Discovery Server/Static Peers to route Rviz2 data through the MCU's Wi-Fi.
+```
+Hesai XT16 (192.168.1.201:2368 UDP)
+    └─ hesai_ros_driver_2  →  /lidar_points (PointCloud2)
+                                        │
+                                   FAST-LIO2
+                                        │
+                       TF: map → odom → base_link → lidar_link
+                                        │
+                                   Nav2 Stack
+                                        │
+                              go2_nav_bridge (cmd_vel → SportModeCmd)
+                                        │
+                              MCU 192.168.123.161 (motion control)
+```
 
-## Networking Topology & Challenges
-The primary challenge is routing ROS 2 messages from the **Dock** (where the SLAM/Nav nodes live) to a **Remote Laptop** via the **MCU's Wi-Fi** adapter. 
+**ROS 2 environment:** Humble inside Docker (`go2_navigation` container), CycloneDDS, `ROS_DOMAIN_ID=1`.
 
-*   **Internal Network**: `192.168.123.0/24`.
-*   **External Network**: Wi-Fi LAN (e.g., `10.0.0.0/24`).
-*   **The Blocker**: Since SSH is disabled on the MCU (`.161`), we cannot easily enable IP Forwarding or NAT rules on the robot's gateway. We must rely on ROS 2 DDS configurations (Discovery Server or Initial Peers) to traverse the network.
+## Network Topology
 
-## Proposed Strategic Decisions
-### 1. Dedicated Wi-Fi Dongle for Expansion Dock (Preferred)
-Dato che l'accesso SSH all'MCU (`.161`) è precluso, la configurazione di un bridge o di regole di routing/NAT a livello kernel non è attuabile. 
-*   **Proposta**: Installare un dongle Wi-Fi USB direttamente sull'Expansion Dock (Orin/PC).
-*   **Vantaggi**: 
-    *   Il Dock otterrà un proprio indirizzo IP sulla rete di laboratorio ("ARSCONTROL").
-    *   Il laptop e il Dock saranno sulla stessa sottorete L2/L3, eliminando la necessità di attraversare l'MCU per la telemetria ROS 2.
-    *   **Semplificazione immediata della comunicazione DDS senza necessità di configurazioni complesse (Discovery Server).
-    *   **Hardware Consigliato**: **Alfa Network AWUS036ACM** (chipset Mediatek MT7612U) o modelli con supporto Linux nativo (evitare chipset che richiedono compilazione driver manuale su Jetson/ARM).
-    *   **Stato**: Proposta da discutere con i supervisori per approvazione e acquisto hardware. (Pending meeting con i superiori).
+| Unit | IP | SSH | Role |
+|---|---|---|---|
+| MCU (Motion Control) | `192.168.123.161` | **blocked** | Motors, low-level SDK, Wi-Fi adapter |
+| Expansion Dock (Orin) | `192.168.123.18` | enabled | Runs Docker + full ROS 2 stack |
+| Developer Laptop | `192.168.123.10` | — | Code editing, Rviz2 visualization |
+| Hesai XT16 LiDAR | `192.168.1.201` | — | UDP `2368` data, TCP `9347` PTC |
 
-## Development Workflow (Current Strategy)
-Per massimizzare la velocità di prototipazione in attesa dell'hardware Wi-Fi:
-1.  **Physical Link**: Robot collegato al laptop via cavo Ethernet (RJ45 su Expansion Dock).
-2.  **Code Sync**: Sviluppo locale su laptop -> Sincronizzazione via `rsync` o `scp` verso `/home/unitree/go2_ws/src` sul Dock.
-3.  **Docker Dev Mode**: Utilizzo di un `docker-compose.yml` provvisorio con **mount dei volumi** per riflettere istantaneamente le modifiche al codice senza rebuild dell'immagine.
-    *   *Nota*: Il volume risiede fisicamente sul Dock e viene mappato nel container.
-4.  **Remote Visualization**: Rviz2 eseguito su laptop puntando all'IP del Dock (`192.168.123.18`).
+**Networking challenge:** The MCU does not bridge ROS 2 DDS traffic from internal Ethernet (`192.168.123.x`) to its Wi-Fi adapter. SSH on MCU is blocked, so IP forwarding/NAT cannot be configured there. Proposed solution: USB Wi-Fi dongle (e.g. Alfa AWUS036ACM) directly on the Dock, giving it a direct presence on the lab Wi-Fi (`ARSCONTROL`).
 
-## Upcoming Tasks & Thesis Analysis
-Verrà fornita una tesi di un precedente studente sul binomio Unitree Go2 + LiDAR. Obiettivi dell'analisi:
-*   **Networking**: Identificare come è stata risolta la connettività Wi-Fi e la telemetria remota (DDS, Bridge, o hardware dedicato).
-*   **Calibration**: Estrarre le matrici estrinseche (TF) tra il corpo del Go2 e il LiDAR Hesai.
-*   **FAST_LIO2 Tuning**: Recuperare i parametri di rumore (noise) dell'IMU e configurazioni specifiche per il sensore XT16.
+**Alternative networking strategies:**
+- **WebRTC/DDS Hybrid:** Use WebRTC for LiDAR/video streams and DDS for control commands — gold standard for wireless telemetry.
+- **IP Forwarding on Dock:** If a Wi-Fi dongle is added to the Dock, enable NAT to reach the MCU:
+  ```bash
+  sudo sysctl -w net.ipv4.ip_forward=1
+  sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+  ```
+- **Travel Router:** External router (e.g. GL.iNet) connected to the Go2 Ethernet port for transparent L2 bridging.
+- **Recommended dongle:** Alfa Network AWUS036ACM (MediaTek MT7612U) — native Linux driver, ARM64 compatible.
 
-## External Resources & Community Solutions
-### 1. Key GitHub Repositories
-*   **[abizovnuralem/go2_ros2_sdk](https://github.com/abizovnuralem/go2_ros2_sdk)**: Supporta **WebRTC** per telemetria fluida via Wi-Fi. Utile se il DDS standard risulta troppo pesante/instabile.
-*   **[unitree_go2_nav](https://github.com/Sayantani-Bhattacharya/unitree_go2_nav)**: Esempio specifico di navigazione autonoma con Nav2 e SLAM RTAB-Map su Go2.
-*   **[Unitree-Go2-Robot/go2_robot](https://github.com/Unitree-Go2-Robot/go2_robot)**: Integrazione standard per `cmd_vel` e URDF completo.
+## Packages
 
-### 2. Networking Strategies Identified
-*   **WebRTC/DDS Hybrid**: L'uso di WebRTC per i flussi video/Lidar e DDS per i comandi di controllo sembra essere il gold standard per il wireless.
-*   **IP Forwarding on Jetson**: Se si usa un dongle Wi-Fi, è possibile trasformare il Jetson (`.18`) in un gateway per raggiungere l'MCU (`.161`):
-    ```bash
-    sudo sysctl -w net.ipv4.ip_forward=1
-    sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-    ```
-*   **Travel Router Option**: Un router esterno (es. GL.iNet) collegato alla porta Ethernet del Go2 per creare un bridge L2 trasparente (soluzione hardware alternativa al dongle).
+| Package | Type | Role |
+|---|---|---|
+| `go2_nav_bridge` | local | Translates Nav2 `cmd_vel` → Unitree `SportModeCmd` — **currently a stub** |
+| `unitree_ros2` | submodule | Unitree SDK + message types (`unitree_go`, `unitree_api`) |
+| `fast_lio_ros2` | submodule (ROS2 branch) | Tightly-coupled LiDAR-IMU SLAM via IEKF + ikd-Tree |
+| `hesai_ros_driver_2` | submodule | Official Hesai XT16 driver |
+| `livox_ros_driver2` | submodule | Provides custom message types required by FAST-LIO2 |
 
----
+## Key Implementation Notes
 
-## FAST-LIO2 Documentation
-**FAST-LIO2** (Fast LiDAR-Inertial Odometry) è un framework di odometria e mapping LiDAR-inerziale veloce, robusto e versatile.
-
-### Caratteristiche Principali
-*   **ikd-Tree:** Utilizza una struttura dati "incremental k-d tree" dinamica che permette l'inserimento di nuovi punti e la rimozione di quelli vecchi in modo efficiente, supportando frequenze LiDAR elevate (>100Hz).
-*   **Odometria Diretta:** Registra i punti grezzi direttamente sulla mappa (punti-su-mappa) senza la necessità di estrazione manuale di feature (come bordi o piani), migliorando la robustezza in ambienti poveri di feature.
-*   **Fusione Stretta (Tightly-coupled):** Integra i dati LiDAR con l'IMU utilizzando un filtro di Kalman iterativo (IEKF).
-*   **Supporto Sensori:** Compatibile con LiDAR rotanti (Hesai, Velodyne, Ouster) e a stato solido (Livox).
-
-### Repository e Risorse
-*   **Repository Ufficiale (ROS 1/2):** [hku-mars/FAST_LIO](https://github.com/hku-mars/FAST_LIO)
-*   **Branch ROS 2:** [hku-mars/FAST_LIO/tree/ROS2](https://github.com/hku-mars/FAST_LIO/tree/ROS2)
-
-## Building and Running
-
-### Prerequisites
-*   Ubuntu 22.04 on the robot's onboard computer and the remote laptop.
-*   Docker and Docker Compose installed on the robot.
-*   ROS 2 Humble installed on the remote laptop.
-
-### Onboard Deployment (Docker)
-1.  **Initialize Submodules** (if not already done):
-    ```bash
-    git submodule update --init --recursive
-    ```
-2.  **Build and run** the Docker image:
-    ```bash
-    cd docker
-    docker compose up --build -d
-    ```
-
-### Remote Visualization
-On your laptop (connected via Ethernet to the robot):
-1.  Set up the ROS 2 environment:
-    ```bash
-    source /opt/ros/humble/setup.bash
-    export ROS_DOMAIN_ID=1  # Match the ID in docker-compose.yml
-    ```
-2.  Launch Rviz2:
-    ```bash
-    rviz2 -d src/go2_nav_bridge/rviz/nav2.rviz
-    ```
-
-## Technical Integrity & Documentation
-*   **README.md Mandate**: Il file `README.md` deve essere mantenuto **sempre in lingua inglese**. Deve contenere obbligatoriamente i link ai sottomoduli Git con una breve descrizione tecnica del loro ruolo nel progetto.
-*   **Contextual Precedence**: Instructions found in `GEMINI.md` files are foundational mandates.
-
-## Development Workflow (Detailed)
-Per massimizzare la velocità di prototipazione, segui questo ciclo di sviluppo:
-
-1.  **Codifica sul Laptop**: Modifica il codice sorgente (C++, Python, YAML) localmente sul tuo laptop.
-2.  **Sincronizzazione Rapida**: Esegui `./sync_to_dog.sh` dalla root del progetto sul laptop. Questo invierà solo i file modificati al Dock (`192.168.123.18`) via Ethernet.
-3.  **Compilazione (sul Robot)**: Accedi al container Docker sul robot e compila le modifiche:
-    ```bash
-    docker exec -it go2_navigation bash
-    colcon build --symlink-install
-    source install/setup.bash
-    ```
-    *Nota: Grazie a `--symlink-install`, le modifiche ai file Python/YAML sono istantanee senza necessità di ricompilare.*
-4.  **Esecuzione**: Lancia i nodi desiderati all'interno del container.
-5.  **Visualizzazione (Laptop)**: Apri RViz2 localmente sul laptop per monitorare i dati in tempo reale.
+- **Bridge node:** Use `SportModeCmd` (high-level) rather than `LowCmd` (joint-level) for locomotion. The `Twist → SportModeCmd` mapping in `go2_nav_bridge` is not yet implemented.
+- **FAST-LIO2 config for Hesai XT16:** No native config exists — extrinsic calibration and IMU noise parameters must be adapted from an existing YAML in `src/fast_lio_ros2/config/`.
+- **unitree_ros2 ROS version:** The `setup.sh` scripts in the submodule target Foxy; ignore them and source the Humble workspace.
+- **Hesai launch file:** `start.launch` is ROS 1 XML — a ROS 2 Python equivalent is needed.
+- **livox_ros_driver2:** A `package.xml` was manually added to make it compile under ament_cmake; the upstream repo does not include one.
+- **README.md mandate:** Must stay in English and always include links to submodules with short descriptions.
 
 ## Development Conventions
-*   **Bridge Node:** All custom logic for navigation command translation should reside in `src/go2_nav_bridge`.
-*   **Message Types**: Prefer high-level `SportModeCmd` for movement to leverage the robot's onboard stability controllers.
-*   **TF Tree:**
-    *   `map` -> `odom` (provided by FAST_LIO2)
-    *   `odom` -> `base_link` (provided by FAST_LIO2)
-    *   `base_link` -> `lidar_link` (static transform)
+
+- **Bridge node:** All custom navigation command translation logic must reside in `src/go2_nav_bridge`.
+- **Message types:** Always prefer high-level `SportModeCmd` over `LowCmd` — leverages the robot's onboard stability controllers.
+- **TF Tree:**
+  - `map` → `odom` (provided by FAST-LIO2)
+  - `odom` → `base_link` (provided by FAST-LIO2)
+  - `base_link` → `lidar_link` (static transform, manually calibrated)
+
+## FAST-LIO2 Reference
+
+Key concepts for configuration and debugging:
+
+- **ikd-Tree:** Incremental k-d tree — supports efficient point insertion/deletion at high LiDAR frequencies (>100 Hz).
+- **Direct odometry:** Registers raw points directly to the map (no feature extraction) — more robust in low-feature environments.
+- **Tightly-coupled fusion:** LiDAR + IMU via Iterative Extended Kalman Filter (IEKF).
+- **Sensor support:** Rotating LiDARs (Hesai, Velodyne, Ouster) and solid-state (Livox).
+- **Config to adapt:** Copy an existing YAML from `src/fast_lio_ros2/config/` and tune `extrinsic_T`, `extrinsic_R`, and IMU noise params (`gyr_cov`, `acc_cov`, `b_gyr_cov`, `b_acc_cov`).
+
+## External Resources & Community Solutions
+
+### Key GitHub Repositories
+- **[abizovnuralem/go2_ros2_sdk](https://github.com/abizovnuralem/go2_ros2_sdk):** Supports WebRTC for fluid telemetry over Wi-Fi. Useful if standard DDS proves too heavy/unstable.
+- **[unitree_go2_nav](https://github.com/Sayantani-Bhattacharya/unitree_go2_nav):** Autonomous navigation example with Nav2 and SLAM RTAB-Map on Go2.
+- **[Unitree-Go2-Robot/go2_robot](https://github.com/Unitree-Go2-Robot/go2_robot):** Standard integration for `cmd_vel` and complete URDF.
+
+## Upcoming Tasks & Thesis Analysis
+
+A thesis from a previous student on the Unitree Go2 + LiDAR combination will be provided. Analysis objectives:
+- **Networking:** Identify how Wi-Fi connectivity and remote telemetry were solved (DDS, Bridge, or dedicated hardware).
+- **Calibration:** Extract extrinsic matrices (TF) between the Go2 body and the Hesai LiDAR.
+- **FAST-LIO2 Tuning:** Recover IMU noise parameters and XT16-specific configurations.
 
 ## TODO / Roadmap
-- [x] Integrate ROS drivers for Hesai XT16 LiDAR.
-- [x] Connect the robot to the laboratory Wi-Fi (ARSCONTROL).
-- [x] Initialize and update all Git submodules.
-- [ ] Implement `go2_nav_bridge` node for `cmd_vel` to `SportModeCmd` translation.
-- [ ] Build and deploy the ROS 2 Humble Docker stack using `docker save/load` (Piano B).
-- [ ] Configure `FAST_LIO2` parameters for Hesai XT16 (noise, extrinsics).
-- [ ] Integrate Nav2 parameters for quadrupedal movement.
+
+- [x] Integrate ROS 2 driver for Hesai XT16 LiDAR
+- [x] Connect robot to laboratory Wi-Fi (ARSCONTROL)
+- [x] Initialize and update all Git submodules
+- [x] Establish SSH access to Expansion Dock (`192.168.123.18`)
+- [x] Diagnose MCU networking (DDS traffic not bridged to Wi-Fi)
+- [ ] Implement `go2_nav_bridge`: `cmd_vel` → `SportModeCmd` translation
+- [ ] Configure FAST-LIO2 YAML for Hesai XT16 (extrinsics + IMU noise)
+- [ ] Resolve wireless telemetry (Wi-Fi dongle on Dock or DDS Discovery Server)
+- [ ] Integrate Nav2 parameters for quadrupedal movement
+- [ ] Build and deploy final ARM64 Docker image (`docker save/load`)
