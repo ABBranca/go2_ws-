@@ -143,6 +143,107 @@ Key concepts for configuration and debugging:
 - **Sensor support:** Rotating LiDARs (Hesai, Velodyne, Ouster) and solid-state (Livox).
 - **Config to adapt:** Copy an existing YAML from `src/fast_lio_ros2/config/` and tune `extrinsic_T`, `extrinsic_R`, and IMU noise params (`gyr_cov`, `acc_cov`, `b_gyr_cov`, `b_acc_cov`).
 
+## Generative AI Integration (MCP)
+
+The high-level logic of the Go2 will be enhanced using the **Model Context Protocol (MCP)** to turn the robot into an autonomous agent.
+
+### Control Layer Architecture (3T)
+
+The system must separate concerns across three frequency domains — the LLM must never operate in the reactive or executive loops:
+
+```
+┌──────────────────────────────────────────────────────┐
+│  DELIBERATIVE LAYER  (~0.1 Hz)                       │
+│  LLM (external) → MCP Client → MCP Server (Orin)    │
+│  Task planning, semantic grounding, goal generation  │
+├──────────────────────────────────────────────────────┤
+│  REACTIVE LAYER  (~20 Hz)                            │
+│  Nav2 (costmap, planner, MPPI controller)            │
+│  Obstacle avoidance, path following                  │
+├──────────────────────────────────────────────────────┤
+│  EXECUTIVE LAYER  (~50 Hz)                           │
+│  go2_nav_bridge (cmd_vel → SportModeCmd)             │
+│  Velocity clamping, watchdog, MCU interface          │
+└──────────────────────────────────────────────────────┘
+```
+
+The LLM issues Nav2 Action goals; it has **no direct authority** over `cmd_vel`.
+
+### MCP Server (on Orin Dock)
+
+- Runs as a ROS 2 node inside the `go2_navigation` container
+- Exposes tools via HTTP/WebSocket (MCP protocol)
+- Requires Wi-Fi dongle on Dock (see Network Topology); fallback: travel router or offline mode
+
+### mcp_watchdog Node (mandatory safety component)
+
+A dedicated ROS 2 node, running on-robot and independent of the Wi-Fi link, must:
+1. Monitor a heartbeat from the MCP client (expected period: configurable, suggested 5 s)
+2. Cancel any active Nav2 goal via Action Client if heartbeat is lost for > N seconds
+3. Command `set_stance("stand_still")` or `set_stance("sit")` as safe-stop
+
+This node is a prerequisite for any MCP deployment on a mobile platform.
+
+### Tool API Specification
+
+Each tool must have explicit signatures, pre/post-conditions, and failure modes:
+
+```python
+navigate_to(
+    target: Pose2D | str,          # Pose2D or named waypoint from spatial map
+    max_velocity: float = 0.5,     # m/s, overrides Nav2 default
+    timeout_sec: float = 120.0,
+    on_failure: Literal["abort", "retry", "return_home"] = "abort"
+) -> NavigationResult              # {success, final_pose, distance_m, elapsed_sec, error}
+
+cancel_navigation() -> bool        # Cancels active Nav2 goal; returns True if goal was active
+
+get_current_pose() -> Pose2D       # Robot pose in map frame (from FAST-LIO2 TF)
+
+get_battery_status() -> BatteryStatus     # Voltage, SoC%, estimated remaining time
+get_slam_state() -> SlamState             # Tracking state, map size, last update timestamp
+get_sensor_health() -> SensorHealth       # LiDAR, IMU status; split from telemetry blob
+
+set_stance(
+    mode: Literal["sit", "stand", "stand_still", "balance_stand"]
+) -> bool                          # Via SportModeCmd; note: "pose" is ambiguous — use "stance"
+
+visual_inspection(
+    camera: Literal["front_left", "front_right"] = "front_left",
+    analysis_prompt: str = "Describe the scene."
+) -> InspectionResult              # {image_base64, vlm_response, timestamp}
+# NOTE: VLM location (on-Orin vs. cloud) and Orin memory budget must be decided before implementation.
+# FAST-LIO2 + Nav2 + VLM concurrent load on Orin (8 GB shared) requires profiling.
+
+wait(seconds: float) -> None       # Temporal primitive for multi-step task sequencing
+```
+
+**Spatial grounding for `navigate_to`:** Named waypoints must be defined in a static YAML map
+(`config/waypoints.yaml`) populated during an initial mapping session. Dynamic semantic mapping
+is out of scope for the thesis.
+
+### Connectivity & Fallback Plan
+
+Wi-Fi via Alfa AWUS036ACM dongle on the Dock is the primary path. If the driver is incompatible
+with the Orin kernel (ARM64), fallback options in priority order:
+1. **Travel router** (GL.iNet) on the Go2 Ethernet port — transparent L2 bridging, no driver issues
+2. **Tethered mode** — laptop connected via Ethernet to the Dock during demonstrations
+3. **Local LLM** — small model (e.g. Qwen2-0.5B) on Orin; severely constrained but fully offline
+
+### Related Work
+
+Any thesis chapter on this architecture must position against: SayCan (Ahn et al., 2022),
+Code as Policies (Liang et al., 2023), ProgPrompt (Singh et al., 2023), VoxPoser (Huang et al., 2023).
+Key differentiator to argue: first application of MCP (as opposed to ad-hoc tool-use APIs)
+to an embodied quadruped platform with a full SLAM + Nav2 stack.
+
+### Implementation Milestone Ordering
+
+**Do NOT implement the MCP layer until the following milestone is verified end-to-end:**
+> LiDAR → FAST-LIO2 → Nav2 → go2_nav_bridge → physical robot motion
+
+Only after this baseline is demonstrated should the MCP Server be added as an incremental layer.
+
 ## External Resources & Community Solutions
 
 ### Key GitHub Repositories
@@ -164,12 +265,21 @@ A thesis from a previous student on the Unitree Go2 + LiDAR combination will be 
 - [x] Initialize and update all Git submodules
 - [x] Establish SSH access to Expansion Dock (`192.168.123.18`)
 - [x] Diagnose MCU networking (DDS traffic not bridged to Wi-Fi)
+- [ ] **[Hardware/Calibration]** Measure Hesai XT16 extrinsic matrices (CAD/Manual) and verify Wi-Fi dongle driver compatibility
+- [ ] **[Hardware/Calibration]** Characterize IMU noise (BMI088) via 5-min static rosbag recording
 - [ ] Create `cyclonedds.xml` with explicit `<NetworkInterface>` and mount it in Docker Compose via `CYCLONEDDS_URI`
 - [ ] Implement `go2_nav_bridge`: `cmd_vel` → `SportModeCmd` translation (mode=2, see Key Implementation Notes)
 - [ ] Verify `go2_nav_bridge` is `ament_cmake` (not `ament_python`) for correct `--symlink-install` behavior on YAML/launch files
 - [ ] Publish `base_link → lidar_link` static TF via `static_transform_publisher` in the bridge launch file
+- [ ] Configure FAST-LIO2 YAML for Hesai XT16 (extrinsics + IMU noise parameters)
+- [ ] **[SLAM Extension]** Integrate `octomap_server` or similar to provide 2D Occupancy Grid from FAST-LIO2 point cloud for Nav2
 - [ ] Configure Nav2 with `SmacPlannerHybrid` planner + MPPI controller (replace default NavFn + DWB)
 - [ ] Configure Nav2 lifecycle manager `node_names` — exclude `map_server` and `amcl` (FAST-LIO2 handles localization)
-- [ ] Configure FAST-LIO2 YAML for Hesai XT16 (extrinsics + IMU noise)
 - [ ] Resolve wireless telemetry (Wi-Fi dongle on Dock or DDS Discovery Server)
+- [ ] **[Baseline Validation]** Verify end-to-end navigation: LiDAR → FAST-LIO2 → Nav2 → bridge → physical motion
+- [ ] **[Baseline Validation]** Conduct at least 3 trials on a measured path to establish quantitative RMSE/FLE baseline
+- [ ] **[MCP prerequisite]** Define spatial grounding map (`config/waypoints.yaml`) with named waypoints
+- [ ] Implement `mcp_watchdog` node: heartbeat monitor + Nav2 goal cancellation + safe-stop on link loss
+- [ ] Implement MCP Server on Expansion Dock with formal tool API (see tool signatures in MCP section)
+- [ ] Profile Orin memory budget: FAST-LIO2 + Nav2 + VLM concurrent load (8 GB shared)
 - [ ] Build and deploy final ARM64 Docker image (`docker save/load`)
