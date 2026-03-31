@@ -55,18 +55,18 @@ git submodule update --init --recursive
 ros2 launch hesai_ros_driver_2 start.py  # ROS 2 conversion of start.launch
 
 # FAST-LIO2 SLAM
-ros2 launch fast_lio mapping.launch.py config_file:=mid360.yaml rviz:=true
+ros2 launch fast_lio mapping.launch.py config_file:=hesai_xt16.yaml rviz:=true
 ```
 
 ## Architecture
 
 ```
-Hesai XT16 (192.168.1.201:2368 UDP)
+Hesai XT16 (192.168.123.20:2368 UDP)
     └─ hesai_ros_driver_2  →  /lidar_points (PointCloud2)
                                         │
                                    FAST-LIO2
                                         │
-                       TF: map → odom → base_link → lidar_link
+                       TF: map → odom → base_link → hesai_lidar
                                         │
                                    Nav2 Stack
                                         │
@@ -84,7 +84,7 @@ Hesai XT16 (192.168.1.201:2368 UDP)
 | MCU (Motion Control) | `192.168.123.161` | **blocked** | Motors, low-level SDK, Wi-Fi adapter |
 | Expansion Dock (Orin) | `192.168.123.18` | enabled | Runs Docker + full ROS 2 stack |
 | Developer Laptop | `192.168.123.10` | — | Code editing, Rviz2 visualization |
-| Hesai XT16 LiDAR | `192.168.1.201` | — | UDP `2368` data, TCP `9347` PTC |
+| Hesai XT16 LiDAR | `192.168.123.20` | — | UDP `2368` data, TCP `9347` PTC |
 
 **Networking challenge:** The MCU does not bridge ROS 2 DDS traffic from internal Ethernet (`192.168.123.x`) to its Wi-Fi adapter. SSH on MCU is blocked, so IP forwarding/NAT cannot be configured there. Proposed solution: USB Wi-Fi dongle (e.g. Alfa AWUS036ACM) directly on the Dock, giving it a direct presence on the lab Wi-Fi (`ARSCONTROL`).
 
@@ -114,13 +114,13 @@ Hesai XT16 (192.168.1.201:2368 UDP)
   - Mapping: `mode=2` (VelocityMove), `velocity[0]=linear.x`, `velocity[1]=linear.y`, `yaw_speed=angular.z`
   - Clamp values: linear ±1.0 m/s, angular ±1.0 rad/s. QoS must match Nav2 (`RELIABLE`, depth 10).
   - Package type must be `ament_cmake` (not `ament_python`) so YAML/launch files are symlinked correctly.
-- **FAST-LIO2 config for Hesai XT16:** No native config exists — extrinsic calibration and IMU noise parameters must be adapted from an existing YAML in `src/fast_lio_ros2/config/`.
+- **FAST-LIO2 config for Hesai XT16:** Config file available at `src/fast_lio_ros2/config/hesai_xt16.yaml`. Extrinsics sourced from official Unitree documentation: `extrinsic_T: [0.171, 0.0, 0.0908]` (m), `extrinsic_R: I₃` (no relative rotation between IMU body and LiDAR frames). IMU noise params (BMI088 datasheet estimates) still require characterization via 5-min static rosbag.
 - **unitree_ros2 ROS version:** The `setup.sh` scripts in the submodule target Foxy; ignore them and source the Humble workspace. Deprecation warnings during build (`ament_export_interfaces`, `rosidl_target_interfaces`) are harmless.
 - **Hesai launch file:** `start.launch` is ROS 1 XML — a ROS 2 Python equivalent is needed.
 - **livox_ros_driver2:** A `package.xml` was manually added to make it compile under ament_cmake; the upstream repo does not include one.
 - **README.md mandate:** Must stay in English and always include links to submodules with short descriptions.
 - **CycloneDDS in Docker:** Without explicit config, CycloneDDS picks a network interface randomly — causes intermittent node discovery failures. Always provide a `cyclonedds.xml` with `<NetworkInterface name="eth0" />` and set `CYCLONEDDS_URI` in the container.
-- **TF static transform:** Publish `base_link → lidar_link` via `static_transform_publisher` or `robot_state_publisher` (URDF). In Humble, static TFs must be on `/tf_static` only — do not publish them periodically on `/tf`.
+- **TF static transform:** Publish `base_link → hesai_lidar` — frame name must match `ros_frame_id: hesai_lidar` in `hesai_ros_driver_2/config/config.yaml`. Use named-argument syntax in Humble (positional is deprecated): `ros2 run tf2_ros static_transform_publisher --x 0.171 --y 0.0 --z 0.0908 --yaw 0 --pitch 0 --roll 0 --frame-id base_link --child-frame-id hesai_lidar`. Static TFs must be on `/tf_static` only — do not publish them periodically on `/tf`.
 - **Nav2 for quadruped:** Do not use default NavFn + DWB (differential-drive only). Use `SmacPlannerHybrid` + MPPI controller. Key param: `minimum_turning_radius` (0.3–0.5 m for Go2).
 - **Nav2 lifecycle manager:** With FAST-LIO2 active, omit `map_server` and `amcl` from `node_names` — FAST-LIO2 already publishes `map → odom → base_link`. Only needed: `[controller_server, planner_server, behavior_server, bt_navigator]`.
 
@@ -131,7 +131,7 @@ Hesai XT16 (192.168.1.201:2368 UDP)
 - **TF Tree:**
   - `map` → `odom` (provided by FAST-LIO2)
   - `odom` → `base_link` (provided by FAST-LIO2)
-  - `base_link` → `lidar_link` (static transform, manually calibrated)
+  - `base_link` → `hesai_lidar` (static transform — official Unitree extrinsics: T=[0.171, 0, 0.0908] m, R=I₃)
 
 ## FAST-LIO2 Reference
 
@@ -141,7 +141,7 @@ Key concepts for configuration and debugging:
 - **Direct odometry:** Registers raw points directly to the map (no feature extraction) — more robust in low-feature environments.
 - **Tightly-coupled fusion:** LiDAR + IMU via Iterative Extended Kalman Filter (IEKF).
 - **Sensor support:** Rotating LiDARs (Hesai, Velodyne, Ouster) and solid-state (Livox).
-- **Config to adapt:** Copy an existing YAML from `src/fast_lio_ros2/config/` and tune `extrinsic_T`, `extrinsic_R`, and IMU noise params (`gyr_cov`, `acc_cov`, `b_gyr_cov`, `b_acc_cov`).
+- **Config for Hesai XT16:** Use `src/fast_lio_ros2/config/hesai_xt16.yaml` (created 2026-03-31). To adapt for other sensors: tune `extrinsic_T`, `extrinsic_R`, `scan_line`, `lidar_type`, and IMU noise params (`gyr_cov`, `acc_cov`, `b_gyr_cov`, `b_acc_cov`).
 
 ## Generative AI Integration (MCP)
 
@@ -258,20 +258,40 @@ A thesis from a previous student on the Unitree Go2 + LiDAR combination will be 
 - **Calibration:** Extract extrinsic matrices (TF) between the Go2 body and the Hesai LiDAR.
 - **FAST-LIO2 Tuning:** Recover IMU noise parameters and XT16-specific configurations.
 
+## Known Issues & Troubleshooting
+
+### Docker Container Startup
+- **Issue:** The container exits immediately after `docker run` (Exit Code 0).
+- **Cause:** The `Dockerfile` uses `CMD ["/bin/bash"]` without an interactive TTY.
+- **Solution:** Always start the container with `-itd` (e.g., `docker run -itd --name go2_navigation ...`) to keep the background shell alive.
+
+### Build Failures on Robot (Orin)
+- **`livox_ros_driver2` package.xml:** The package fails to build because it expects `package.xml` but the repository contains `package_ROS1.xml` and `package_ROS2.xml`.
+    - *Fix:* Manually symlink or rename `package_ROS2.xml` to `package.xml` in the `src/livox_ros_driver2` directory.
+- **Missing Dependencies (PCL):** The `go2_nav_stack:latest` image is missing the Point Cloud Library (PCL), causing `livox_ros_driver2` and potentially `fast_lio_ros2` to fail during `colcon build`.
+    - *Fix:* Update `docker/Dockerfile` to include `libpcl-dev` or `ros-humble-pcl-ros`.
+
 ## TODO / Roadmap
 
+### Next Session Tasks (Build Fixes)
+- [ ] **[Fix]** Update `docker/Dockerfile` to include `libpcl-dev` and `ros-humble-pcl-ros` dependencies
+- [ ] **[Fix]** Symlink `src/livox_ros_driver2/package_ROS2.xml` to `package.xml` for ROS 2 build compatibility
+- [ ] **[Fix]** Rebuild Docker image locally: `docker buildx build --platform linux/arm64 -t go2_nav_stack:latest --load .`
+- [ ] **[Fix]** Re-transfer the new Docker image to the robot and verify the container build on Orin
+
+### General Roadmap
 - [x] Integrate ROS 2 driver for Hesai XT16 LiDAR
 - [x] Connect robot to laboratory Wi-Fi (ARSCONTROL)
 - [x] Initialize and update all Git submodules
 - [x] Establish SSH access to Expansion Dock (`192.168.123.18`)
 - [x] Diagnose MCU networking (DDS traffic not bridged to Wi-Fi)
-- [ ] **[Hardware/Calibration]** Measure Hesai XT16 extrinsic matrices (CAD/Manual) and verify Wi-Fi dongle driver compatibility
+- [ ] **[Hardware/Calibration]** Verify Hesai XT16 extrinsics physically (official values: T=[0.171,0,0.0908], R=I₃ — measure with caliper to confirm ±2 mm tolerance) and verify Wi-Fi dongle driver compatibility
 - [ ] **[Hardware/Calibration]** Characterize IMU noise (BMI088) via 5-min static rosbag recording
 - [ ] Create `cyclonedds.xml` with explicit `<NetworkInterface>` and mount it in Docker Compose via `CYCLONEDDS_URI`
 - [ ] Implement `go2_nav_bridge`: `cmd_vel` → `SportModeCmd` translation (mode=2, see Key Implementation Notes)
 - [ ] Verify `go2_nav_bridge` is `ament_cmake` (not `ament_python`) for correct `--symlink-install` behavior on YAML/launch files
-- [ ] Publish `base_link → lidar_link` static TF via `static_transform_publisher` in the bridge launch file
-- [ ] Configure FAST-LIO2 YAML for Hesai XT16 (extrinsics + IMU noise parameters)
+- [ ] Publish `base_link → hesai_lidar` static TF via `static_transform_publisher` in the bridge launch file (extrinsics: T=[0.171, 0, 0.0908], R=I₃)
+- [x] Configure FAST-LIO2 YAML for Hesai XT16 (`src/fast_lio_ros2/config/hesai_xt16.yaml` — official Unitree extrinsics; IMU noise from BMI088 datasheet, pending rosbag characterization)
 - [ ] **[SLAM Extension]** Integrate `octomap_server` or similar to provide 2D Occupancy Grid from FAST-LIO2 point cloud for Nav2
 - [ ] Configure Nav2 with `SmacPlannerHybrid` planner + MPPI controller (replace default NavFn + DWB)
 - [ ] Configure Nav2 lifecycle manager `node_names` — exclude `map_server` and `amcl` (FAST-LIO2 handles localization)
