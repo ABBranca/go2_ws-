@@ -33,20 +33,29 @@ The primary development environment is **VS Code with Dev Containers**. The work
 
 ## Build & Deploy
 
-**Initial Docker start (on robot):**
-```bash
-cd docker && docker compose up --build -d
-```
+**1. Production Deployment (Precompiled Image):**
+This is the primary method for deploying the stable navigation stack. The image is built locally for ARM64 and transferred to the robot.
 
-**Build a single package:**
 ```bash
-colcon build --symlink-install --packages-select go2_nav_bridge
-```
-
-**Final immutable image (ARM64, when development is complete):**
-```bash
+# Build the image locally (on ARM64 host or via buildx)
 docker buildx build --platform linux/arm64 -t go2_nav_stack:latest --load .
+
+# Transfer to robot (192.168.123.18)
 docker save go2_nav_stack:latest | ssh -C unitree@192.168.123.18 'docker load'
+
+# Start on robot via Docker Compose
+ssh unitree@192.168.123.18 "cd ~/go2_ws/docker && docker compose up -d"
+```
+
+**2. Local Development & Incremental Build:**
+Use this during active development for quick testing of code changes without rebuilding the entire image.
+
+```bash
+# Sync source code
+./sync_to_dog.sh
+
+# Build a single package inside the container on the robot
+docker exec -it go2_navigation bash -c "colcon build --symlink-install --packages-select go2_nav_bridge"
 ```
 
 **After cloning — initialize submodules:**

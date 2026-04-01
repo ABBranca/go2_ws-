@@ -58,31 +58,50 @@ git clone --recursive https://github.com/ABBranca/go2_ws.git
 cd go2_ws
 
 # Fix livox package manifest (upstream ships package_ROS2.xml, not package.xml)
-ln -s src/livox_ros_driver2/package_ROS2.xml src/livox_ros_driver2/package.xml
-
-# Build and start the container on the robot
-ssh unitree@192.168.123.18 "cd go2_ws/docker && docker compose up -d --build"
-
-# Build the workspace inside the container
-docker exec -it go2_navigation bash
-colcon build --symlink-install && source install/setup.bash
+ln -s package_ROS2.xml src/livox_ros_driver2/package.xml
 ```
 
 ---
 
 ## Development Workflow
 
+### Local (VS Code Dev Containers)
+Open the project root in VS Code and run `Dev Containers: Reopen in Container`.
+The container includes all ROS 2 dependencies; use the **ROS 2 extension** for IntelliSense and builds,
+or the integrated terminal:
+```bash
+colcon build --symlink-install && source install/setup.bash
+```
+
+### Hardware testing (sync → build → visualize)
 ```bash
 # 1. Sync source to robot
 ./sync_to_dog.sh
 
-# 2. Build inside container
-docker exec -it go2_navigation bash -c "colcon build --symlink-install && source install/setup.bash"
+# 2. Build inside the container on the robot (single package or full)
+docker exec -it go2_navigation bash -c \
+  "colcon build --symlink-install --packages-select go2_nav_bridge && source install/setup.bash"
 
-# 3. Visualize on laptop
+# 3. Visualize on the laptop
 export ROS_DOMAIN_ID=1
 rviz2 -d src/go2_nav_bridge/rviz/nav2.rviz
 ```
+
+---
+
+## Deployment
+
+For production (final immutable ARM64 image):
+```bash
+# Build locally (requires docker buildx)
+docker buildx build --platform linux/arm64 -t go2_nav_stack:latest --load .
+
+# Transfer to robot and start
+docker save go2_nav_stack:latest | ssh -C unitree@192.168.123.18 'docker load'
+ssh unitree@192.168.123.18 "cd ~/go2_ws/docker && docker compose up -d"
+```
+
+For iterative development, skip the image build and use the sync workflow above.
 
 ---
 

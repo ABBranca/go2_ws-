@@ -4,7 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Development Workflow
 
-The standard cycle is: edit locally → sync to robot → build in container → visualize on laptop.
+Two supported workflows depending on context:
+
+### Local development (VS Code Dev Containers)
+The preferred IDE environment for active development. Open the project root in VS Code and use the `Dev Containers: Reopen in Container` command. The container is pre-configured with all ROS 2 dependencies and the **ROS 2 extension** provides IntelliSense, debugging, and build management. Build via the extension sidebar or the integrated terminal (`colcon build --symlink-install`).
+
+### Hardware testing cycle
+The standard cycle for testing on the robot: edit locally → sync to robot → build in container → visualize on laptop.
 
 **1. Sync code to robot (Ethernet):**
 ```bash
@@ -41,6 +47,8 @@ colcon build --symlink-install --packages-select go2_nav_bridge
 ```bash
 docker buildx build --platform linux/arm64 -t go2_nav_stack:latest --load .
 docker save go2_nav_stack:latest | ssh -C unitree@192.168.123.18 'docker load'
+# Start the stack on the robot after transfer
+ssh unitree@192.168.123.18 "cd ~/go2_ws/docker && docker compose up -d"
 ```
 
 **After cloning — initialize submodules:**
