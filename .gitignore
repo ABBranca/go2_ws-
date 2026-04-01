@@ -42,6 +42,7 @@ compile_commands.json
 
 # Claude Code (local config & memory)
 .claude/
+!.claude/skills/
 
 # OS
 .DS_Store
