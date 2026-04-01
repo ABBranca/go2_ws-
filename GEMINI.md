@@ -4,26 +4,32 @@ This file provides guidance to Gemini CLI when working with code in this reposit
 
 ## Development Workflow
 
-The standard cycle is: edit locally → sync to robot → build in container → visualize on laptop.
+The primary development environment is **VS Code with Dev Containers**. The workspace is opened directly inside a ROS 2 Docker container with the official **ROS 2 extension** for IntelliSense, debugging, and build management.
 
-**1. Sync code to robot (Ethernet):**
-```bash
-./sync_to_dog.sh   # rsync src/ → unitree@192.168.123.18
-```
+**1. Open Workspace in Container:**
+- Launch VS Code in the project root.
+- Use the `Dev Containers: Reopen in Container` command.
+- The environment is pre-configured with all necessary ROS 2 dependencies.
 
-**2. Build inside the Docker container on the robot:**
-```bash
-docker exec -it go2_navigation bash
-colcon build --symlink-install   # NOTE: instant only for ament_cmake packages; ament_python requires rebuild on YAML/launch changes
-source install/setup.bash
-```
+**2. Build & Develop:**
+- Use the ROS 2 extension's sidebar for package management and building.
+- Alternatively, use the integrated terminal: `colcon build --symlink-install`.
+- Source the workspace: `source install/setup.bash`.
 
-**3. Visualize remotely (on laptop):**
-```bash
-source /opt/ros/humble/setup.bash
-export ROS_DOMAIN_ID=1
-rviz2 -d src/go2_nav_bridge/rviz/nav2.rviz
-```
+**3. Sync to Robot (for hardware testing):**
+- After local verification, sync the source code to the Expansion Dock:
+  ```bash
+  ./sync_to_dog.sh   # rsync src/ → unitree@192.168.123.18
+  ```
+
+**4. Remote Execution & Visualization:**
+- Build on the robot (via SSH/Docker exec) if necessary for final verification.
+- Visualize remotely on the laptop:
+  ```bash
+  source /opt/ros/humble/setup.bash
+  export ROS_DOMAIN_ID=1
+  rviz2 -d src/go2_nav_bridge/rviz/nav2.rviz
+  ```
 
 ## Build & Deploy
 
