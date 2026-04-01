@@ -4,7 +4,7 @@
 [![Platform](https://img.shields.io/badge/Platform-ARM64%20(Orin)-green)](#)
 [![Robot](https://img.shields.io/badge/Robot-Unitree%20Go2-orange)](https://www.unitree.com/go2)
 
-Autonomous navigation framework for the **Unitree Go2** quadruped robot, integrating LiDAR-Inertial SLAM (FAST-LIO2), Nav2, and a custom command bridge. Primary implementation for a Master's Thesis on autonomous quadrupedal robotics and Embodied AI.
+Autonomous navigation framework for the **Unitree Go2** quadruped robot, integrating LiDAR-Inertial SLAM (FAST-LIO2), Nav2, and a custom command bridge. Bachelor's thesis project in Mechatronics Engineering at **UNIMORE**.
 
 ---
 
@@ -118,4 +118,4 @@ ros2 launch go2_nav_bridge bridge.launch.py
 
 ---
 
-**Lead Researcher:** [ABBranca](https://github.com/ABBranca) — Politecnico di Milano, Master's Thesis in Autonomous Systems & Robotics
+**Lead Researcher:** [ABBranca](https://github.com/ABBranca) — UNIMORE, Bachelor's Thesis in Mechatronics Engineering
