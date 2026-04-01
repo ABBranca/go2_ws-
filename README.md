@@ -6,9 +6,19 @@
 
 Autonomous navigation framework for the **Unitree Go2** quadruped robot, integrating LiDAR-Inertial SLAM (FAST-LIO2), Nav2, and a custom command bridge. Bachelor's thesis project in Mechatronics Engineering at **UNIMORE**.
 
+| Requirement | Version / Value |
+| :--- | :--- |
+| ROS 2 | Humble Hawksbill |
+| Platform | ARM64 — Jetson Orin (Expansion Dock) |
+| Container | Docker + `docker compose` |
+| LiDAR | Hesai XT16 |
+| IMU | BMI088 (onboard Go2) |
+
 ---
 
 ## Architecture
+
+The LiDAR point cloud is fused with IMU data by FAST-LIO2, which provides localization and mapping. Nav2 plans paths on the resulting map, and `go2_nav_bridge` translates velocity commands into Unitree's proprietary `SportModeCmd` protocol.
 
 ```
 Hesai XT16 (UDP:2368)
@@ -58,7 +68,7 @@ git clone --recursive https://github.com/ABBranca/go2_ws.git
 cd go2_ws
 
 # Fix livox package manifest (upstream ships package_ROS2.xml, not package.xml)
-ln -s package_ROS2.xml src/livox_ros_driver2/package.xml
+cd src/livox_ros_driver2 && ln -s package_ROS2.xml package.xml && cd ../..
 ```
 
 ---
@@ -91,9 +101,9 @@ rviz2 -d src/go2_nav_bridge/rviz/nav2.rviz
 
 ## Deployment
 
-For production (final immutable ARM64 image):
+Requires `docker buildx` with QEMU configured for ARM64 cross-compilation (see [Docker multi-platform docs](https://docs.docker.com/build/building/multi-platform/)).
+
 ```bash
-# Build locally (requires docker buildx)
 docker buildx build --platform linux/arm64 -t go2_nav_stack:latest --load .
 
 # Transfer to robot and start
@@ -105,6 +115,20 @@ For iterative development, skip the image build and use the sync workflow above.
 
 ---
 
+## ROS Interfaces
+
+Key topics published/subscribed by the stack:
+
+| Topic | Type | Direction | Publisher |
+| :--- | :--- | :--- | :--- |
+| `/lidar_points` | `sensor_msgs/PointCloud2` | pub | `hesai_ros_driver_2` |
+| `/Odometry` | `nav_msgs/Odometry` | pub | `fast_lio_ros2` |
+| `/tf`, `/tf_static` | `tf2_msgs/TFMessage` | pub | `fast_lio_ros2`, `static_transform_publisher` |
+| `/cmd_vel` | `geometry_msgs/Twist` | sub | Nav2 → `go2_nav_bridge` |
+| `/sportmodestate` | `unitree_go/SportModeState` | pub | MCU |
+
+---
+
 ## Known Issues
 
 | Issue | Cause | Fix |
@@ -113,6 +137,21 @@ For iterative development, skip the image build and use the sync workflow above.
 | `livox_ros_driver2` build fails | Missing `package.xml` | `ln -s package_ROS2.xml package.xml` |
 | PCL not found during build | Missing `libpcl-dev` in image | Add `libpcl-dev` + `ros-humble-pcl-ros` to `Dockerfile` |
 | Intermittent node discovery | CycloneDDS random interface selection | Set `cyclonedds.xml` with `<NetworkInterfaceAddress>eth0</NetworkInterfaceAddress>` |
+
+---
+
+## Citation
+
+If you use this work, please cite:
+
+```bibtex
+@software{go2_nav_stack,
+  author  = {Branca, A.},
+  title   = {Unitree Go2 Autonomous Navigation Stack},
+  year    = {2026},
+  url     = {https://github.com/ABBranca/go2_ws},
+}
+```
 
 ---
 
