@@ -1,3 +1,7 @@
+---
+name: ros2-expert
+description: Specialized guidance for developing, debugging, and optimizing ROS 2 Humble applications.
+---
 # ROS 2 Humble Expert Skill
 
 Official procedural guidance and best practices for developing with ROS 2 Humble Hawksbill.
