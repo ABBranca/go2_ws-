@@ -1,5 +1,48 @@
 # Session Diary
 
+## Session: 2026-04-02
+
+### Agenda
+- Create a Claude `docs-writer` skill for professional README/documentation writing
+- Rewrite `README.md` to meet professional open-source standards
+- Sync CLAUDE.md and GEMINI.md (integrate Dev Containers workflow differences)
+- Set up agent memory system for session-closure-sync
+
+### Progress
+- Created `.claude/skills/docs-writer/SKILL.md` — based on the existing Gemini `docs-writer` skill, improved with analysis of real documentation projects (ETH Zurich `ros_package_template`, `ros2_control`, `articubot_one`)
+- Rewrote `README.md` from scratch:
+  - Added requirements table (ROS 2 version, platform, container, LiDAR, IMU)
+  - Added ROS Interfaces table (`/lidar_points`, `/Odometry`, `/cmd_vel`, `/sportmodestate`, TF)
+  - Added BibTeX citation block and lead researcher footer
+  - Added architecture narrative paragraph before the ASCII diagram
+  - Added Deployment section with `buildx` prerequisite link and `docker compose` post-deploy step
+  - Added Known Issues table (container exit, livox build, PCL, CycloneDDS)
+  - All submodule links point to upstream repositories with short descriptions
+- Fixed README.md affiliation: corrected from "Politecnico di Milano Master's Thesis" to "UNIMORE Bachelor's Thesis in Mechatronics Engineering"
+- Removed redundant Launch section from README (docker compose handles node startup automatically)
+- Integrated GEMINI.md differences into CLAUDE.md: VS Code Dev Containers as primary workflow, post-deploy `docker compose up -d` step
+- Fixed `ln -s` path in README Setup section, added `buildx` prerequisite link, removed double separator
+- Created agent memory: `user_profile.md` (UNIMORE triennale meccatronica) and `MEMORY.md` index
+
+### Status of Key Components
+| Component | Status | Notes |
+|---|---|---|
+| `README.md` | Done | Full rewrite with requirements, interfaces, architecture narrative, citation, known issues |
+| `.claude/skills/docs-writer/SKILL.md` | Done | New skill for documentation writing |
+| `.gemini/skills/docs-writer/SKILL.md` | Done | Already existed; Claude version created from it |
+| CLAUDE.md / GEMINI.md | In Sync | Dev Containers workflow + post-deploy compose step integrated into both |
+| `go2_nav_bridge` | In Progress | Bridge node implemented (prev session), awaiting on-robot testing |
+| Dockerfile PCL deps | Blocked | Next priority — `libpcl-dev` + `ros-humble-pcl-ros` |
+
+### Open Items / Next Steps
+- [ ] Update `docker/Dockerfile` to include `libpcl-dev` and `ros-humble-pcl-ros`
+- [ ] Symlink `src/livox_ros_driver2/package_ROS2.xml` to `package.xml`
+- [ ] Rebuild ARM64 Docker image and transfer to robot
+- [ ] Test `go2_nav_bridge` on physical robot
+- [ ] Create new Gemini skills: `go2-hardware-expert`, `go2-deployment-pro` (already created for Claude)
+
+---
+
 ## Session: 2026-04-01
 
 ### Agenda
