@@ -10,6 +10,8 @@ RUN apt-get update && apt-get install -y \
     cmake \
     git \
     python3-colcon-common-extensions \
+    libpcl-dev \
+    ros-humble-pcl-ros \
     && rm -rf /var/lib/apt/lists/*
 
 # Create workspace directory
