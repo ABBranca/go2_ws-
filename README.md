@@ -105,27 +105,6 @@ For iterative development, skip the image build and use the sync workflow above.
 
 ---
 
-## Launch
-
-```bash
-# LiDAR driver
-ros2 launch hesai_ros_driver_2 start.py
-
-# Static TF: base_link → hesai_lidar (official Unitree extrinsics)
-ros2 run tf2_ros static_transform_publisher \
-  --x 0.171 --y 0.0 --z 0.0908 --yaw 0 --pitch 0 --roll 0 \
-  --frame-id base_link --child-frame-id hesai_lidar
-
-# FAST-LIO2
-ros2 launch fast_lio mapping.launch.py config_file:=hesai_xt16.yaml
-
-# Nav2 + bridge
-ros2 launch go2_nav_bridge navigation.launch.py
-ros2 launch go2_nav_bridge bridge.launch.py
-```
-
----
-
 ## Known Issues
 
 | Issue | Cause | Fix |
