@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y \
     ros-humble-slam-toolbox \
     ros-humble-robot-localization \
     ros-humble-teleop-twist-keyboard \
+    ros-humble-rmw-cyclonedds-cpp \
     build-essential \
     cmake \
     git \
@@ -15,7 +16,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Create workspace directory
-WORKDIR /ros2_ws/src
+WORKDIR /ros2_ws
 
 # Copy the local workspace into the container (optional, usually done via volumes)
 # COPY . .

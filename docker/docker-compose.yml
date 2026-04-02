@@ -6,9 +6,13 @@ services:
     container_name: go2_navigation
     network_mode: host
     privileged: true
+    stdin_open: true
+    tty: true
     volumes:
       - /home/unitree/go2_ws:/ros2_ws
+      - ./cyclonedds.xml:/cyclonedds.xml:ro
     environment:
-      - ROS_DOMAIN_ID=1  # Change as needed
+      - ROS_DOMAIN_ID=1
       - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-    command: /bin/bash -c "source /opt/ros/humble/setup.bash && colcon build --symlink-install && /bin/bash"
+      - CYCLONEDDS_URI=/cyclonedds.xml
+    command: /bin/bash

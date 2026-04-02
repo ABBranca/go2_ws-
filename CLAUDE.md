@@ -20,7 +20,7 @@ The standard cycle for testing on the robot: edit locally → sync to robot → 
 **2. Build inside the Docker container on the robot:**
 ```bash
 docker exec -it go2_navigation bash
-colcon build --symlink-install   # NOTE: instant only for ament_cmake packages; ament_python requires rebuild on YAML/launch changes
+colcon build --symlink-install --cmake-args -DROS_EDITION=ROS2 -DHUMBLE_ROS=humble   # NOTE: instant only for ament_cmake packages; ament_python requires rebuild on YAML/launch changes
 source install/setup.bash
 ```
 
@@ -40,7 +40,7 @@ cd docker && docker compose up --build -d
 
 **Build a single package:**
 ```bash
-colcon build --symlink-install --packages-select go2_nav_bridge
+colcon build --symlink-install --cmake-args -DROS_EDITION=ROS2 -DHUMBLE_ROS=humble --packages-select go2_nav_bridge
 ```
 
 **Final immutable image (ARM64, when development is complete):**
@@ -269,21 +269,22 @@ A thesis from a previous student on the Unitree Go2 + LiDAR combination will be 
 ## Known Issues & Troubleshooting
 
 ### Docker Container Startup
-- **Issue:** The container exits immediately after `docker run` (Exit Code 0).
-- **Cause:** The `Dockerfile` uses `CMD ["/bin/bash"]` without an interactive TTY.
-- **Solution:** Always start the container with `-itd` (e.g., `docker run -itd --name go2_navigation ...`) to keep the background shell alive.
+- **Issue:** The container exits immediately after `docker run` (Exit Code 0). ✅ **FIXED**
+- **Cause:** `CMD ["/bin/bash"]` without an interactive TTY.
+- **Fix applied:** `docker-compose.yml` now sets `stdin_open: true` and `tty: true`; use `docker compose up -d`.
 
 ### Build Failures on Robot (Orin)
-- **`livox_ros_driver2` package.xml:** The package fails to build because it expects `package.xml` but the repository contains `package_ROS1.xml` and `package_ROS2.xml`.
-    - *Fix:* Manually symlink or rename `package_ROS2.xml` to `package.xml` in the `src/livox_ros_driver2` directory.
-- **Missing Dependencies (PCL):** The `go2_nav_stack:latest` image is missing the Point Cloud Library (PCL), causing `livox_ros_driver2` and potentially `fast_lio_ros2` to fail during `colcon build`.
-    - *Fix:* Update `docker/Dockerfile` to include `libpcl-dev` or `ros-humble-pcl-ros`.
+- **`livox_ros_driver2` package.xml:** ✅ **FIXED** — `package.xml` (identical to `package_ROS2.xml`) is committed to the repo. No manual symlink needed.
+- **Missing Dependencies (PCL):** ✅ **FIXED** — `Dockerfile` now includes `libpcl-dev` and `ros-humble-pcl-ros`.
+- **CycloneDDS random interface:** ✅ **FIXED** — `docker/cyclonedds.xml` (with `eth0`) is mounted in the container via `CYCLONEDDS_URI`.
+- **`rmw_cyclonedds_cpp` not installed:** ✅ **FIXED** — `ros-humble-rmw-cyclonedds-cpp` added to `Dockerfile`.
 
 ## TODO / Roadmap
 
 ### Next Session Tasks (Build Fixes)
-- [ ] **[Fix]** Update `docker/Dockerfile` to include `libpcl-dev` and `ros-humble-pcl-ros` dependencies
-- [ ] **[Fix]** Symlink `src/livox_ros_driver2/package_ROS2.xml` to `package.xml` for ROS 2 build compatibility
+- [x] **[Fix]** Update `docker/Dockerfile` to include `libpcl-dev` and `ros-humble-pcl-ros` dependencies
+- [x] **[Fix]** Add `ros-humble-rmw-cyclonedds-cpp` to Dockerfile and fix container TTY (stdin_open/tty) and CycloneDDS config
+- [x] **[Fix]** `src/livox_ros_driver2/package.xml` already present (identical to `package_ROS2.xml`); colcon build now passes `-DROS_EDITION=ROS2 -DHUMBLE_ROS=humble`
 - [ ] **[Fix]** Rebuild Docker image locally: `docker buildx build --platform linux/arm64 -t go2_nav_stack:latest --load .`
 - [ ] **[Fix]** Re-transfer the new Docker image to the robot and verify the container build on Orin
 
