@@ -4,58 +4,51 @@ This file provides guidance to Gemini CLI when working with code in this reposit
 
 ## Development Workflow
 
-The primary development environment is **VS Code with Dev Containers**. The workspace is opened directly inside a ROS 2 Docker container with the official **ROS 2 extension** for IntelliSense, debugging, and build management.
+Two supported workflows depending on context:
 
-**1. Open Workspace in Container:**
-- Launch VS Code in the project root.
-- Use the `Dev Containers: Reopen in Container` command.
-- The environment is pre-configured with all necessary ROS 2 dependencies.
+### Local development (VS Code Dev Containers)
+The preferred IDE environment for active development. Open the project root in VS Code and use the `Dev Containers: Reopen in Container` command. The container is pre-configured with all ROS 2 dependencies and the **ROS 2 extension** provides IntelliSense, debugging, and build management. Build via the extension sidebar or the integrated terminal (`colcon build --symlink-install`).
 
-**2. Build & Develop:**
-- Use the ROS 2 extension's sidebar for package management and building.
-- Alternatively, use the integrated terminal: `colcon build --symlink-install`.
-- Source the workspace: `source install/setup.bash`.
+### Hardware testing cycle
+The standard cycle for testing on the robot: edit locally → sync to robot → build in container → visualize on laptop.
 
-**3. Sync to Robot (for hardware testing):**
-- After local verification, sync the source code to the Expansion Dock:
-  ```bash
-  ./sync_to_dog.sh   # rsync src/ → unitree@192.168.123.18
-  ```
+**1. Sync code to robot (Ethernet):**
+```bash
+./sync_to_dog.sh   # rsync src/ → unitree@192.168.123.18
+```
 
-**4. Remote Execution & Visualization:**
-- Build on the robot (via SSH/Docker exec) if necessary for final verification.
-- Visualize remotely on the laptop:
-  ```bash
-  source /opt/ros/humble/setup.bash
-  export ROS_DOMAIN_ID=1
-  rviz2 -d src/go2_nav_bridge/rviz/nav2.rviz
-  ```
+**2. Build inside the Docker container on the robot:**
+```bash
+docker exec -it go2_navigation bash
+colcon build --symlink-install --cmake-args -DROS_EDITION=ROS2 -DHUMBLE_ROS=humble   # NOTE: instant only for ament_cmake packages; ament_python requires rebuild on YAML/launch changes
+source install/setup.bash
+```
+
+**3. Visualize remotely (on laptop):**
+```bash
+source /opt/ros/humble/setup.bash
+export ROS_DOMAIN_ID=1
+rviz2 -d src/go2_nav_bridge/rviz/nav2.rviz
+```
 
 ## Build & Deploy
 
-**1. Production Deployment (Precompiled Image):**
-This is the primary method for deploying the stable navigation stack. The image is built locally for ARM64 and transferred to the robot.
-
+**Initial Docker start (on robot):**
 ```bash
-# Build the image locally (on ARM64 host or via buildx)
-docker buildx build --platform linux/arm64 -t go2_nav_stack:latest --load .
-
-# Transfer to robot (192.168.123.18)
-docker save go2_nav_stack:latest | ssh -C unitree@192.168.123.18 'docker load'
-
-# Start on robot via Docker Compose
-ssh unitree@192.168.123.18 "cd ~/go2_ws/docker && docker compose up -d"
+cd docker && docker compose up --build -d
 ```
 
-**2. Local Development & Incremental Build:**
-Use this during active development for quick testing of code changes without rebuilding the entire image.
-
+**Build a single package:**
 ```bash
-# Sync source code
-./sync_to_dog.sh
+colcon build --symlink-install --cmake-args -DROS_EDITION=ROS2 -DHUMBLE_ROS=humble --packages-select go2_nav_bridge
+```
 
-# Build a single package inside the container on the robot
-docker exec -it go2_navigation bash -c "colcon build --symlink-install --packages-select go2_nav_bridge"
+**Final immutable image (ARM64, when development is complete):**
+```bash
+docker buildx build --platform linux/arm64 -t go2_nav_stack:latest --load .
+docker save go2_nav_stack:latest | ssh -C unitree@192.168.123.18 'docker load'
+# Start the stack on the robot after transfer
+ssh unitree@192.168.123.18 "cd ~/go2_ws/docker && docker compose up -d"
 ```
 
 **After cloning — initialize submodules:**
@@ -276,21 +269,22 @@ A thesis from a previous student on the Unitree Go2 + LiDAR combination will be 
 ## Known Issues & Troubleshooting
 
 ### Docker Container Startup
-- **Issue:** The container exits immediately after `docker run` (Exit Code 0).
-- **Cause:** The `Dockerfile` uses `CMD ["/bin/bash"]` without an interactive TTY.
-- **Solution:** Always start the container with `-itd` (e.g., `docker run -itd --name go2_navigation ...`) to keep the background shell alive.
+- **Issue:** The container exits immediately after `docker run` (Exit Code 0). ✅ **FIXED**
+- **Cause:** `CMD ["/bin/bash"]` without an interactive TTY.
+- **Fix applied:** `docker-compose.yml` now sets `stdin_open: true` and `tty: true`; use `docker compose up -d`.
 
 ### Build Failures on Robot (Orin)
-- **`livox_ros_driver2` package.xml:** The package fails to build because it expects `package.xml` but the repository contains `package_ROS1.xml` and `package_ROS2.xml`.
-    - *Fix:* Manually symlink or rename `package_ROS2.xml` to `package.xml` in the `src/livox_ros_driver2` directory.
-- **Missing Dependencies (PCL):** The `go2_nav_stack:latest` image is missing the Point Cloud Library (PCL), causing `livox_ros_driver2` and potentially `fast_lio_ros2` to fail during `colcon build`.
-    - *Fix:* Update `docker/Dockerfile` to include `libpcl-dev` or `ros-humble-pcl-ros`.
+- **`livox_ros_driver2` package.xml:** ✅ **FIXED** — `package.xml` (identical to `package_ROS2.xml`) is committed to the repo. No manual symlink needed.
+- **Missing Dependencies (PCL):** ✅ **FIXED** — `Dockerfile` now includes `libpcl-dev` and `ros-humble-pcl-ros`.
+- **CycloneDDS random interface:** ✅ **FIXED** — `docker/cyclonedds.xml` (with `eth0`) is mounted in the container via `CYCLONEDDS_URI`.
+- **`rmw_cyclonedds_cpp` not installed:** ✅ **FIXED** — `ros-humble-rmw-cyclonedds-cpp` added to `Dockerfile`.
 
 ## TODO / Roadmap
 
 ### Next Session Tasks (Build Fixes)
-- [ ] **[Fix]** Update `docker/Dockerfile` to include `libpcl-dev` and `ros-humble-pcl-ros` dependencies
-- [ ] **[Fix]** Symlink `src/livox_ros_driver2/package_ROS2.xml` to `package.xml` for ROS 2 build compatibility
+- [x] **[Fix]** Update `docker/Dockerfile` to include `libpcl-dev` and `ros-humble-pcl-ros` dependencies
+- [x] **[Fix]** Add `ros-humble-rmw-cyclonedds-cpp` to Dockerfile and fix container TTY (stdin_open/tty) and CycloneDDS config
+- [x] **[Fix]** `src/livox_ros_driver2/package.xml` already present (identical to `package_ROS2.xml`); colcon build now passes `-DROS_EDITION=ROS2 -DHUMBLE_ROS=humble`
 - [ ] **[Fix]** Rebuild Docker image locally: `docker buildx build --platform linux/arm64 -t go2_nav_stack:latest --load .`
 - [ ] **[Fix]** Re-transfer the new Docker image to the robot and verify the container build on Orin
 
