@@ -296,7 +296,6 @@ map
 **Thesis objectives:**
 1. Deploy a full LiDAR-SLAM + Nav2 pipeline on a Unitree Go2 quadruped (ARM64).
 2. Implement a velocity bridge that safely translates Nav2 output to proprietary motion commands.
-3. Extend the navigation stack with an LLM-driven deliberative layer via MCP (future milestone).
 
 **Roadmap:**
 
@@ -310,7 +309,6 @@ map
 | IMU noise characterization (static rosbag) | ⚠️ Pending |
 | End-to-end test: LiDAR → SLAM → Nav2 → bridge → robot motion | ⏳ Pending |
 | 2D occupancy grid from FAST-LIO2 point cloud (octomap_server) | ⏳ Pending |
-| MCP Server on Orin + `mcp_watchdog` node | ⏳ Future |
 
 **Related work:** SayCan (Ahn et al., 2022), Code as Policies (Liang et al., 2023),
 ProgPrompt (Singh et al., 2023), VoxPoser (Huang et al., 2023).
