@@ -1,18 +1,23 @@
 services:
-  go2_ros2:
+  go2_navigation:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: go2_navigation
+    # Use host network for low-latency DDS communication
     network_mode: host
+    # Allow shared memory between containers/host for high-bandwidth ROS 2 traffic
+    ipc: host
     privileged: true
     stdin_open: true
     tty: true
     volumes:
-      - /home/unitree/go2_ws:/ros2_ws
+      # Mount the main workspace into the container (relative to this folder)
+      - ..:/ros2_ws
+      # Mount the CycloneDDS config with explicit file:/// protocol for URI
       - ./cyclonedds.xml:/cyclonedds.xml:ro
     environment:
       - ROS_DOMAIN_ID=1
       - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-      - CYCLONEDDS_URI=/cyclonedds.xml
-    command: /bin/bash
+      - CYCLONEDDS_URI=file:///cyclonedds.xml
+    command: bash
