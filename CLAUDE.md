@@ -110,7 +110,7 @@ Hesai XT16 (192.168.123.20:2368 UDP)
 
 | Package | Type | Role |
 |---|---|---|
-| `go2_nav_bridge` | local | Translates Nav2 `cmd_vel` → Unitree `SportModeCmd` — **currently a stub** |
+| `go2_nav_bridge` | local | Translates Nav2 `cmd_vel` → Unitree `SportModeCmd` (Apache-2.0, hardened build) |
 | `unitree_ros2` | submodule | Unitree SDK + message types (`unitree_go`, `unitree_api`) |
 | `fast_lio_ros2` | submodule (ROS2 branch) | Tightly-coupled LiDAR-IMU SLAM via IEKF + ikd-Tree |
 | `hesai_ros_driver_2` | submodule | Official Hesai XT16 driver |
@@ -118,10 +118,16 @@ Hesai XT16 (192.168.123.20:2368 UDP)
 
 ## Key Implementation Notes
 
-- **Bridge node:** Use `SportModeCmd` (high-level) rather than `LowCmd` (joint-level) for locomotion. The `Twist → SportModeCmd` mapping in `go2_nav_bridge` is not yet implemented.
+- **Bridge node (`go2_nav_bridge`):** Fully implemented `cmd_vel` → `SportModeCmd` translation with safety hardening.
   - Mapping: `mode=2` (VelocityMove), `velocity[0]=linear.x`, `velocity[1]=linear.y`, `yaw_speed=angular.z`
-  - Clamp values: linear ±1.0 m/s, angular ±1.0 rad/s. QoS must match Nav2 (`RELIABLE`, depth 10).
-  - Package type must be `ament_cmake` (not `ament_python`) so YAML/launch files are symlinked correctly.
+  - Clamp values: linear ±1.0 m/s, angular ±1.0 rad/s (configurable via read-only parameters). QoS: `RELIABLE`, depth 10.
+  - **Safety features:** Watchdog timer (default 200 ms) publishes zero velocity on `cmd_vel` timeout; NaN/Inf input sanitization; symmetric clamping with `std::abs(limit)`; graceful shutdown via `rclcpp::on_shutdown` with 50 ms DDS flush delay.
+  - **Parameters (read-only):** `linear_max` (m/s), `angular_max` (rad/s), `watchdog_timeout_ms` — validated at startup with fallback to defaults.
+  - **Thread safety:** `std::mutex` guards time state; `std::atomic<bool>` for flags; consistent lock ordering in `publish_stop_command()`.
+  - **Build hardening:** `-Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wdouble-promotion`, `-D_FORTIFY_SOURCE=2` (non-Debug), RELRO linking.
+  - **Tests:** 21 GTest unit tests for `bridge_utils` (edge cases: NaN, Inf, negative limits, boundary conditions) + full `ament_lint_auto` suite (copyright, cpplint, uncrustify, cppcheck, lint_cmake, xmllint).
+  - **License:** Apache-2.0 (chosen for `ament_copyright` compatibility — avoids requiring full BSD-3 license text in each file header).
+  - Package type: `ament_cmake` (not `ament_python`) so YAML/launch files are symlinked correctly.
 - **FAST-LIO2 config for Hesai XT16:** Config file available at `src/fast_lio_ros2/config/hesai_xt16.yaml`. Extrinsics sourced from official Unitree documentation: `extrinsic_T: [0.171, 0.0, 0.0908]` (m), `extrinsic_R: I₃` (no relative rotation between IMU body and LiDAR frames). IMU noise params (BMI088 datasheet estimates) still require characterization via 5-min static rosbag.
 - **unitree_ros2 ROS version:** The `setup.sh` scripts in the submodule target Foxy; ignore them and source the Humble workspace. Deprecation warnings during build (`ament_export_interfaces`, `rosidl_target_interfaces`) are harmless.
 - **Hesai launch file:** `start.launch` is ROS 1 XML — a ROS 2 Python equivalent is needed.
@@ -297,8 +303,8 @@ A thesis from a previous student on the Unitree Go2 + LiDAR combination will be 
 - [ ] **[Hardware/Calibration]** Verify Hesai XT16 extrinsics physically (official values: T=[0.171,0,0.0908], R=I₃ — measure with caliper to confirm ±2 mm tolerance) and verify Wi-Fi dongle driver compatibility
 - [ ] **[Hardware/Calibration]** Characterize IMU noise (BMI088) via 5-min static rosbag recording
 - [ ] Create `cyclonedds.xml` with explicit `<NetworkInterface>` and mount it in Docker Compose via `CYCLONEDDS_URI`
-- [ ] Implement `go2_nav_bridge`: `cmd_vel` → `SportModeCmd` translation (mode=2, see Key Implementation Notes)
-- [ ] Verify `go2_nav_bridge` is `ament_cmake` (not `ament_python`) for correct `--symlink-install` behavior on YAML/launch files
+- [x] Implement `go2_nav_bridge`: `cmd_vel` → `SportModeCmd` translation with watchdog, input sanitization, compiler hardening, and 21 GTest unit tests (all `ament_lint_auto` checks pass)
+- [x] Verify `go2_nav_bridge` is `ament_cmake` (not `ament_python`) for correct `--symlink-install` behavior on YAML/launch files
 - [ ] Publish `base_link → hesai_lidar` static TF via `static_transform_publisher` in the bridge launch file (extrinsics: T=[0.171, 0, 0.0908], R=I₃)
 - [x] Configure FAST-LIO2 YAML for Hesai XT16 (`src/fast_lio_ros2/config/hesai_xt16.yaml` — official Unitree extrinsics; IMU noise from BMI088 datasheet, pending rosbag characterization)
 - [ ] **[SLAM Extension]** Integrate `octomap_server` or similar to provide 2D Occupancy Grid from FAST-LIO2 point cloud for Nav2
