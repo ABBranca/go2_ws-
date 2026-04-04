@@ -1,5 +1,37 @@
 # Session Diary
 
+## Session: 2026-04-04
+
+### Agenda
+- Ricerca documentazione ROS 2 Humble e Gemini CLI via Context7
+- Esplorazione delle capacità plugin di Claude Code nell'estensione VS Code
+- Installazione e configurazione di nuovi plugin Claude Code
+
+### Progress
+- Consultata documentazione ROS 2 Humble via Context7 (library ID: `/ros2/ros2_documentation`) — recuperati aggiornamenti Humble Hawksbill: lifecycle nodes in rclpy, QoS overrides CLI, composable nodes frontend, launch_pytest
+- Consultata documentazione Gemini CLI via Context7 (library ID: `/google-gemini/gemini-cli`) — confermato supporto MCP server via `settings.json` con stessa sintassi di Claude Code
+- Chiarito che i plugin/skill di Claude Code sono accessibili con la stessa interfaccia `/plugin:skill` sia nel terminale CLI che nell'estensione VS Code
+- Installati due nuovi plugin: `documentation-generator` e `experienced-engineer`
+- Ricaricato sistema plugin: 11 plugins, 14 skills, 25 agents; 2 errori di caricamento da investigare
+
+### Status of Key Components
+| Component | Status | Notes |
+|---|---|---|
+| CLAUDE.md / GEMINI.md | In Sync | Nessuna modifica necessaria ai contenuti |
+| Context7 MCP server | Funzionante | Verificato per ROS 2 e Gemini CLI docs |
+| Claude Code plugins | Aggiornati | `documentation-generator` + `experienced-engineer` installati; 2 errori pending |
+| `go2_nav_bridge` | In Progress | Codice completato (sessione precedente), test su robot in attesa |
+| Docker ARM64 image | Blocked | Rebuild e trasferimento su Orin ancora da fare |
+
+### Open Items / Next Steps
+- [ ] Investigare i 2 errori di caricamento plugin (identificare quale plugin e causa)
+- [ ] Rebuild immagine Docker: `docker buildx build --platform linux/arm64 -t go2_nav_stack:latest --load .`
+- [ ] Trasferire la nuova immagine Docker sul robot e verificare il build su Orin
+- [ ] Testare `go2_nav_bridge` sul robot fisico
+- [ ] Pubblicare static TF `base_link → hesai_lidar` nel launch file del bridge
+
+---
+
 ## Session: 2026-04-02
 
 ### Agenda
