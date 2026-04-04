@@ -69,26 +69,6 @@ Hesai XT16 (192.168.123.20, UDP:2368)
                               MCU 192.168.123.161 (motion control)
 ```
 
-### 3T Control Architecture (Deliberative / Reactive / Executive)
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│  DELIBERATIVE LAYER  (~0.1 Hz)                               │
-│  LLM (external) → MCP Client → MCP Server (Orin)            │
-│  Task planning, semantic grounding, Nav2 goal generation     │
-├──────────────────────────────────────────────────────────────┤
-│  REACTIVE LAYER  (~20 Hz)                                    │
-│  Nav2 (costmap, SmacPlannerHybrid, MPPI controller)          │
-│  Obstacle avoidance, path following                          │
-├──────────────────────────────────────────────────────────────┤
-│  EXECUTIVE LAYER  (~50 Hz)                                   │
-│  go2_nav_bridge (cmd_vel → SportModeCmd)                     │
-│  Velocity clamping, watchdog, MCU interface                  │
-└──────────────────────────────────────────────────────────────┘
-```
-
-The LLM issues Nav2 Action goals; it has **no direct authority** over `cmd_vel`.
-The MCP layer is a future milestone — see [Research Context](#research-context).
 
 ---
 
