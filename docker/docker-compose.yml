@@ -4,11 +4,14 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: go2_navigation
+    restart: unless-stopped
     # Use host network for low-latency DDS communication
     network_mode: host
     # Allow shared memory between containers/host for high-bandwidth ROS 2 traffic
     ipc: host
-    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - SYS_NICE
     stdin_open: true
     tty: true
     volumes:

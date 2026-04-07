@@ -1,7 +1,6 @@
 {
     "recommendations": [
         "llvm-vs-code-extensions.vscode-clangd",
-        "ms-vscode.cpptools",
         "ms-iot.vscode-ros"
     ]
 }

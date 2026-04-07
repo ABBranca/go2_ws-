@@ -304,6 +304,10 @@ ProgPrompt (Singh et al., 2023), VoxPoser (Huang et al., 2023).
 | PCL not found during build | ✅ Fixed | `libpcl-dev` and `ros-humble-pcl-ros` added to `Dockerfile` |
 | `rmw_cyclonedds_cpp` not installed | ✅ Fixed | `ros-humble-rmw-cyclonedds-cpp` added to `Dockerfile` |
 | CycloneDDS random interface selection | ✅ Fixed | `docker/cyclonedds.xml` with `eth0` mounted via `CYCLONEDDS_URI` |
+| CycloneDDS default socket buffer (212 KB) drops PointCloud2 bursts | ✅ Fixed | 4 MB `SocketReceiveBufferSize` in `cyclonedds.xml`; host requires `sudo sysctl -w net.core.rmem_max=4194304` |
+| `docker-compose` `privileged: true` (excessive Linux capabilities) | ✅ Fixed | Replaced with `cap_add: [NET_ADMIN, SYS_NICE]` |
+| `devcontainer/ros_entrypoint.sh` crashes before first `colcon build` | ✅ Fixed | Guarded `source install/setup.bash` with `[ -f ]` check; `.bashrc` appends are idempotent |
+| `.vscode/settings.json` hardcoded machine-specific `clangd.path` | ✅ Fixed | Replaced with `"clangd"` (resolved from PATH) |
 | MCU does not bridge DDS traffic to Wi-Fi | ⏳ Open | USB Wi-Fi dongle (Alfa AWUS036ACM) on Dock or GL.iNet travel router |
 | `unitree_ros2` deprecation warnings on build | ℹ️ Harmless | `ament_export_interfaces` / `rosidl_target_interfaces` target Foxy; ignore |
 

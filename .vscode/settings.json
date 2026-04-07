@@ -1,5 +1,5 @@
 {
-    "clangd.path": "/home/Ale/.local/bin/clangd-go2",
+    "clangd.path": "clangd",
     "clangd.arguments": [
         "--compile-commands-dir=${workspaceFolder}",
         "--background-index",

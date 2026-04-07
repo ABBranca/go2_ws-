@@ -146,6 +146,7 @@ Hesai XT16 (192.168.123.20:2368 UDP)
   - `map` → `odom` (provided by FAST-LIO2)
   - `odom` → `base_link` (provided by FAST-LIO2)
   - `base_link` → `hesai_lidar` (static transform — official Unitree extrinsics: T=[0.171, 0, 0.0908] m, R=I₃)
+- **Claude Code subagents:** Parallel agents do not inherit the parent session's Edit/Write permissions. Use agents for read-only research/analysis; apply all file writes in the main session.
 
 ## FAST-LIO2 Reference
 
@@ -202,6 +203,7 @@ A thesis from a previous student on the Unitree Go2 + LiDAR combination will be 
 - **`livox_ros_driver2` package.xml:** ✅ **FIXED** — `package.xml` (identical to `package_ROS2.xml`) is committed to the repo. No manual symlink needed.
 - **Missing Dependencies (PCL):** ✅ **FIXED** — `Dockerfile` now includes `libpcl-dev` and `ros-humble-pcl-ros`.
 - **CycloneDDS random interface:** ✅ **FIXED** — `docker/cyclonedds.xml` (with `eth0`) is mounted in the container via `CYCLONEDDS_URI`.
+- **CycloneDDS socket receive buffer (Orin host):** `docker/cyclonedds.xml` requests a 4 MB buffer (`SocketReceiveBufferSize min="4194304"`). Requires `net.core.rmem_max ≥ 4194304` on the host. Persistent fix: `echo "net.core.rmem_max=4194304" | sudo tee /etc/sysctl.d/99-ros2-dds.conf && sudo sysctl --system`.
 - **`rmw_cyclonedds_cpp` not installed:** ✅ **FIXED** — `ros-humble-rmw-cyclonedds-cpp` added to `Dockerfile`.
 
 ## TODO / Roadmap
@@ -221,7 +223,7 @@ A thesis from a previous student on the Unitree Go2 + LiDAR combination will be 
 - [x] Diagnose MCU networking (DDS traffic not bridged to Wi-Fi)
 - [ ] **[Hardware/Calibration]** Verify Hesai XT16 extrinsics physically (official values: T=[0.171,0,0.0908], R=I₃ — measure with caliper to confirm ±2 mm tolerance) and verify Wi-Fi dongle driver compatibility
 - [ ] **[Hardware/Calibration]** Characterize IMU noise (BMI088) via 5-min static rosbag recording
-- [ ] Create `cyclonedds.xml` with explicit `<NetworkInterface>` and mount it in Docker Compose via `CYCLONEDDS_URI`
+- [x] Create `cyclonedds.xml` with explicit `<NetworkInterface>` and mount it in Docker Compose via `CYCLONEDDS_URI`
 - [x] Implement `go2_nav_bridge`: `cmd_vel` → `SportModeCmd` translation with watchdog, input sanitization, compiler hardening, and 21 GTest unit tests (all `ament_lint_auto` checks pass)
 - [x] Verify `go2_nav_bridge` is `ament_cmake` (not `ament_python`) for correct `--symlink-install` behavior on YAML/launch files
 - [ ] Publish `base_link → hesai_lidar` static TF via `static_transform_publisher` in the bridge launch file (extrinsics: T=[0.171, 0, 0.0908], R=I₃)
