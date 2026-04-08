@@ -217,11 +217,11 @@ A thesis from a previous student on the Unitree Go2 + LiDAR combination will be 
 ### General Roadmap
 - [x] Integrate ROS 2 driver for Hesai XT16 LiDAR
 - [x] Connect robot to laboratory Wi-Fi (ARSCONTROL)
-- [x] Initialize and update all Git submodules
+- [x] Initialize and update all Git submodules (added `allan_variance_ros2` for IMU characterization)
 - [x] Establish SSH access to Expansion Dock (`192.168.123.18`)
 - [x] Diagnose MCU networking (DDS traffic not bridged to Wi-Fi)
 - [ ] **[Hardware/Calibration]** Verify Hesai XT16 extrinsics physically (official values: T=[0.171,0,0.0908], R=I₃ — measure with caliper to confirm ±2 mm tolerance) and verify Wi-Fi dongle driver compatibility
-- [ ] **[Hardware/Calibration]** Characterize IMU noise (BMI088) via 5-min static rosbag recording
+- [ ] **[SLAM Tuning]** Characterize IMU noise (BMI088) via 6-minute static rosbag (recorded 2026-04-08) for initial IEKF white noise tuning; use datasheet fallbacks for bias random walk until a 3-hour capture is performed.
 - [x] Create `cyclonedds.xml` with explicit `<NetworkInterface>` and mount it in Docker Compose via `CYCLONEDDS_URI`
 - [x] Implement `go2_nav_bridge`: `cmd_vel` → `SportModeCmd` translation with watchdog, input sanitization, compiler hardening, and 21 GTest unit tests (all `ament_lint_auto` checks pass)
 - [x] Verify `go2_nav_bridge` is `ament_cmake` (not `ament_python`) for correct `--symlink-install` behavior on YAML/launch files

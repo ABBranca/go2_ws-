@@ -286,7 +286,7 @@ map
 | `go2_nav_bridge` (cmd_vel → SportModeCmd) | ✅ |
 | Docker ARM64 image build & transfer | ⏳ Pending |
 | LiDAR-IMU extrinsics field verification | ⚠️ Pending |
-| IMU noise characterization (static rosbag) | ⚠️ Pending |
+| IMU noise characterization (static rosbag) | 🔄 Recorded — analysis pending |
 | End-to-end test: LiDAR → SLAM → Nav2 → bridge → robot motion | ⏳ Pending |
 | 2D occupancy grid from FAST-LIO2 point cloud (octomap_server) | ⏳ Pending |
 
