@@ -1,9 +1,12 @@
-FROM ros:humble-ros-base
+# =============================================================================
+# Stage 1 — builder
+# Compiles the full ROS 2 workspace from source.
+# The resulting install/ tree is copied into the leaner runtime stage.
+# =============================================================================
+FROM ros:humble-ros-base AS builder
 
-# Prevent interactive prompts during installation
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install essential build and ROS dependencies
 RUN apt-get update && apt-get install --no-install-recommends -y \
     build-essential \
     cmake \
@@ -12,30 +15,65 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     python3-rosdep \
     ros-humble-rmw-cyclonedds-cpp \
     ros-humble-nav2-bringup \
-    ros-humble-slam-toolbox \
+    ros-humble-nav2-mppi-controller \
+    ros-humble-nav2-smac-planner \
     ros-humble-robot-localization \
-    ros-humble-teleop-twist-keyboard \
     libpcl-dev \
     ros-humble-pcl-ros \
     && rm -rf /var/lib/apt/lists/*
 
-# Setup rosdep for dependency management
-# In this development container, code is mounted via volume, 
-# so rosdep will be used to resolve any missing project dependencies.
-RUN if [ ! -d /etc/ros/rosdep/sources.list.d ]; then \
+# Initialise rosdep (skip if already done in the base image)
+RUN if [ ! -f /etc/ros/rosdep/sources.list.d/20-default.list ]; then \
       rosdep init; \
     fi && \
     rosdep update
 
-# Set workspace directory
 WORKDIR /ros2_ws
 
-# Setup entrypoint for environment configuration
-COPY ros_entrypoint.sh /ros_entrypoint.sh
+# Build context is the project root (set in docker-compose.yml via context: ..)
+COPY src/ /ros2_ws/src/
+
+# Resolve any remaining apt-installable deps declared in package.xml files.
+# unitree_go / unitree_api are built from source — skip their rosdep keys.
+RUN . /opt/ros/humble/setup.sh && \
+    rosdep install --from-paths src --ignore-src -r -y \
+        --skip-keys "unitree_go unitree_api"
+
+# Build the workspace
+RUN . /opt/ros/humble/setup.sh && \
+    colcon build \
+        --cmake-args -DROS_EDITION=ROS2 -DHUMBLE_ROS=humble \
+        --no-warn-unused-cli
+
+# =============================================================================
+# Stage 2 — runtime
+# Minimal image: only runtime libraries + the pre-compiled install/ tree.
+# No build toolchain, no rosdep, no colcon.
+# =============================================================================
+FROM ros:humble-ros-base AS runtime
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install --no-install-recommends -y \
+    ros-humble-rmw-cyclonedds-cpp \
+    ros-humble-nav2-bringup \
+    ros-humble-nav2-mppi-controller \
+    ros-humble-nav2-smac-planner \
+    ros-humble-robot-localization \
+    ros-humble-pcl-ros \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /ros2_ws
+
+# Copy only the compiled artefacts from the builder stage
+COPY --from=builder /ros2_ws/install /ros2_ws/install
+
+# Entrypoint: sources ROS 2 + workspace, then exec CMD
+COPY docker/ros_entrypoint.sh /ros_entrypoint.sh
 RUN chmod +x /ros_entrypoint.sh
 
-# Persist environment in .bashrc for interactive shells
+# Persist sourcing for interactive shells
 RUN echo "source /ros_entrypoint.sh" >> ~/.bashrc
 
 ENTRYPOINT ["/ros_entrypoint.sh"]
-CMD ["bash"]
+CMD ["ros2", "launch", "go2_nav_bridge", "bringup.launch.py"]
