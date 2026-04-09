@@ -11,3 +11,6 @@
 [submodule "src/hesai_ros_driver_2"]
 	path = src/hesai_ros_driver_2
 	url = https://github.com/HesaiTechnology/HesaiLidar_ROS_2.0.git
+[submodule "src/allan_variance_ros2"]
+	path = src/allan_variance_ros2
+	url = https://github.com/Autoliv-Research/allan_variance_ros2.git
