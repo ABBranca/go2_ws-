@@ -166,6 +166,6 @@ docker exec -it go2_navigation_dev bash
 
 ## Open Questions (deferred to implementation)
 
-1. `hesai_ros_driver_2/start.py` currently also launches Rviz2 — needs to be forked or the `start.py` updated to accept a `rviz:=false` argument.
+1. `hesai_ros_driver_2/start.py` includes an Rviz2 node with no `rviz:=false` argument. **Decision:** use the launch file as-is. On the headless Orin (no `$DISPLAY`), the Rviz2 node will fail to initialize and exit; the driver node is independent and unaffected. This is acceptable — the container will log a display error but the LiDAR data pipeline remains intact.
 2. Nav2 `nav2_params.yaml` MPPI tuning values (weights, time horizon) are initial estimates — require field testing.
-3. Go2 footprint polygon is approximate — verify against URDF or physical measurement.
+3. Go2 footprint polygon is approximate — will be refined through iterative field testing.
