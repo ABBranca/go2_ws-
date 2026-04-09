@@ -1,0 +1,273 @@
+############################################################################
+# nav2_params.yaml — Nav2 Configuration for Unitree Go2
+#
+# This file configures Nav2 for autonomous navigation on the Unitree Go2
+# quadruped robot. Key principles:
+# - FAST-LIO2 provides full localization (map → odom → base_link)
+# - No AMCL or map_server; only dynamic obstacle avoidance
+# - SmacPlannerHybrid with Reeds-Shepp for non-holonomic planning
+# - MPPI controller for smooth trajectory execution
+# - Observation source: Hesai XT16 LiDAR on /lidar_points (PointCloud2)
+############################################################################
+
+amcl: ~
+
+bt_navigator:
+  ros__parameters:
+    use_sim_time: False
+    global_frame: map
+    robot_base_frame: base_link
+    odom_topic: /Odometry
+    bt_loop_duration: 10
+    default_bt_xml_filename: "navigate_w_replanning_and_recovery.xml"
+    plugin_lib_names:
+      - nav2_compute_path_to_pose_action_bt_node
+      - nav2_compute_path_through_poses_action_bt_node
+      - nav2_follow_path_action_bt_node
+      - nav2_spin_action_bt_node
+      - nav2_wait_action_bt_node
+      - nav2_back_up_action_bt_node
+      - nav2_drive_on_heading_bt_node
+      - nav2_assisted_teleop_action_bt_node
+      - nav2_clear_costmap_service_bt_node
+      - nav2_is_stuck_tf_check_bt_node
+      - nav2_goal_reached_bt_node
+      - nav2_initial_pose_received_bt_node
+      - nav2_goal_updated_bt_node
+      - nav2_getpose_action_bt_node
+      - nav2_truncate_path_action_bt_node
+      - nav2_truncate_path_local_action_bt_node
+      - nav2_rate_controller_bt_node
+      - nav2_distance_controller_bt_node
+      - nav2_speed_controller_bt_node
+      - nav2_truncate_path_action_bt_node
+      - nav2_recovery_node_bt_node
+      - nav2_pipeline_sequence_bt_node
+      - nav2_round_robin_bt_node
+      - nav2_sequence_bt_node
+      - nav2_parallel_bt_node
+      - nav2_repeat_until_fail_bt_node
+      - nav2_retry_until_success_bt_node
+      - nav2_while_do_else_bt_node
+      - nav2_if_else_bt_node
+      - nav2_decorator_is_initial_pose_set_bt_node
+      - nav2_decorator_distance_controller_bt_node
+      - nav2_decorator_speed_controller_bt_node
+      - nav2_decorator_goal_updated_controller_bt_node
+      - nav2_decorator_rate_controller_bt_node
+      - nav2_decorator_single_trigger_bt_node
+
+controller_server:
+  ros__parameters:
+    use_sim_time: False
+    controller_frequency: 20.0
+    min_x_velocity_threshold: 0.001
+    min_y_velocity_threshold: 0.5
+    min_theta_velocity_threshold: 0.001
+    failure_tolerance: 0.3
+    progress_checker_plugin: "progress_checker"
+    goal_checker_plugin: "goal_checker"
+    controller_plugins: ["FollowPath"]
+    progress_checker:
+      plugin: "nav2_controller::SimpleProgressChecker"
+      required_movement_radius: 0.5
+      movement_time_allowance: 10.0
+    goal_checker:
+      plugin: "nav2_controller::SimpleGoalChecker"
+      xy_goal_tolerance: 0.25
+      yaw_goal_tolerance: 0.25
+      stateful: True
+    FollowPath:
+      plugin: "nav2_mppi_controller::MPPIController"
+      motion_model: "DiffDrive"
+      critics: ["ConstraintCritic", "GoalCritic", "GoalAngleCritic",
+                "PathAlignCritic", "PathFollowCritic", "PathAngleCritic",
+                "PreferForwardCritic"]
+      vx_max: 1.0
+      vx_min: -0.5
+      vy_max: 0.0
+      vy_min: 0.0
+      wz_max: 1.0
+      wz_min: -1.0
+      # MPPI Sampling Parameters
+      batch_size: 2000
+      time_steps: 56
+      model_dt: 0.05
+      # Noise params (standard deviation)
+      vx_std: 0.2
+      vy_std: 0.2
+      wz_std: 0.4
+      v_std: 0.2
+      # Cost tracking weights
+      goal_critic_weight: 3.0
+      goal_angle_critic_weight: 0.5
+      path_align_critic_weight: 14.0
+      path_angle_critic_weight: 32.0
+      path_follow_critic_weight: 5.0
+      prefer_forward_critic_weight: 5.0
+      feature_importance_critic_weight: 2.0
+      constraint_critic_weight: 1.24
+      # Velocity param: use vx_max and wz_max for quadruped
+      max_robot_pose_search_dist: 2.5
+      refresh_control_duration: 0.0
+      smoothing_speed: 0.5
+      cost_threshold: 2.0
+
+costmap_converter:
+  ros__parameters:
+    use_sim_time: False
+
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      update_frequency: 5.0
+      publish_frequency: 2.0
+      global_frame: map
+      robot_base_frame: base_link
+      use_sim_time: False
+      robot_radius: 0.35
+      resolution: 0.05
+      track_unknown_space: True
+      plugins: ["obstacle_layer", "inflation_layer"]
+      obstacle_layer:
+        plugin: "nav2_costmap_2d::ObstacleLayer"
+        enabled: True
+        observation_sources: "scan"
+        scan:
+          topic: /lidar_points
+          max_obstacle_height: 2.0
+          clearing: True
+          marking: True
+          data_type: "PointCloud2"
+          raytrace_max_range: 3.0
+          raytrace_min_range: 0.0
+          obstacle_max_range: 2.5
+          obstacle_min_range: 0.0
+          expected_transform_time: 0.1
+          transform_tolerance: 0.5
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        enabled: True
+        inflation_radius: 0.55
+        cost_scaling_factor: 3.0
+      always_send_full_costmap: False
+
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      update_frequency: 10.0
+      publish_frequency: 2.0
+      global_frame: odom
+      robot_base_frame: base_link
+      use_sim_time: False
+      rolling_window: True
+      width: 3
+      height: 3
+      resolution: 0.05
+      robot_radius: 0.35
+      plugins: ["voxel_layer", "inflation_layer"]
+      voxel_layer:
+        plugin: "nav2_costmap_2d::VoxelLayer"
+        enabled: True
+        publish_voxel_map: False
+        origin_z: 0.0
+        z_resolution: 0.05
+        z_voxels: 16
+        max_obstacle_height: 2.0
+        mark_threshold: 0
+        observation_sources: "scan"
+        scan:
+          topic: /lidar_points
+          max_obstacle_height: 2.0
+          clearing: True
+          marking: True
+          data_type: "PointCloud2"
+          raytrace_max_range: 3.0
+          raytrace_min_range: 0.0
+          obstacle_max_range: 2.5
+          obstacle_min_range: 0.0
+          expected_transform_time: 0.1
+          transform_tolerance: 0.5
+      inflation_layer:
+        plugin: "nav2_costmap_2d::InflationLayer"
+        enabled: True
+        inflation_radius: 0.55
+        cost_scaling_factor: 3.0
+      always_send_full_costmap: False
+
+map_server:
+  ros__parameters:
+    use_sim_time: False
+    yaml_filename: ""
+
+planner_server:
+  ros__parameters:
+    expected_planner_frequency: 20.0
+    use_sim_time: False
+    planner_plugins: ["GridBased"]
+    GridBased:
+      plugin: "nav2_smac_planner/SmacPlannerHybrid"
+      downsample_costmap: False
+      downsampling_factor: 1
+      tolerance: 0.125
+      downsample_spacing: 0.1
+      # Hybrid A* params
+      max_iterations: 1000
+      max_on_approach_iterations: 100
+      max_planning_time: 5.0
+      motion_model_for_search: "REEDS_SHEPP"
+      # Cost function
+      cost_travel_multiplier: 1.0
+      # Smoothing
+      smooth_path: True
+      smoother_params:
+        max_iterations: 50
+        w_smooth: 0.3
+        w_data: 0.2
+        tolerance: 1e-10
+      # Reeds-Shepp params
+      minimum_turning_radius: 0.35
+      use_astar: True
+      # Maximum robot footprint (safety)
+      max_robot_pose_search_dist: 2.5
+
+recoveries_server:
+  ros__parameters:
+    costmap_topic: local_costmap/costmap_raw
+    footprint_topic: local_costmap/published_footprint
+    cycle_frequency: 10.0
+    recovery_plugins: ["spin", "backup", "wait", "drive_on_heading"]
+    spin:
+      plugin: "nav2_behaviors/Spin"
+      simulate_ahead_time: 2.0
+      max_rotational_vel: 1.0
+      min_rotational_vel: 0.4
+      rotational_acc_lim: 3.2
+    backup:
+      plugin: "nav2_behaviors/BackUp"
+      simulate_ahead_time: 2.0
+      max_backups: 1
+      backup_speed: 0.5
+      acceleration_limit: 1.0
+    wait:
+      plugin: "nav2_behaviors/Wait"
+      wait_duration: 5
+    drive_on_heading:
+      plugin: "nav2_behaviors/DriveOnHeading"
+      simulate_ahead_time: 1.0
+      max_speed: 0.5
+      min_speed: 0.1
+      acceleration_limit: 1.0
+
+robot_state_publisher:
+  ros__parameters:
+    use_sim_time: False
+
+lifecycle_manager_navigation:
+  ros__parameters:
+    use_sim_time: False
+    autostart: True
+    node_names: ["controller_server",
+                 "planner_server",
+                 "behavior_server",
+                 "bt_navigator"]
