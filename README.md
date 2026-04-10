@@ -22,20 +22,27 @@ Mechatronics Engineering at **UNIMORE**.
 ## Quick Start
 
 > **Prerequisites:** Docker with `buildx` + QEMU for ARM64, SSH access to `192.168.123.18`.
+> Submodules must be initialized on the developer laptop before syncing.
 
 ```bash
 # Clone and initialize all submodules
 git clone --recursive https://github.com/ABBranca/go2_ws.git
 cd go2_ws
 
-# Sync source to robot and start the container
+# Sync source to robot, build the Docker image, and start the full stack
 ./sync_to_dog.sh
-ssh unitree@192.168.123.18 "cd ~/go2_ws/docker && docker compose up -d"
+ssh unitree@192.168.123.18 "cd ~/go2_ws/docker && docker compose up --build -d"
+```
 
-# Shell into the container and build
-ssh unitree@192.168.123.18 "docker exec -it go2_navigation bash"
-colcon build --symlink-install --cmake-args -DROS_EDITION=ROS2 -DHUMBLE_ROS=humble
-source install/setup.bash
+The container builds the ROS 2 workspace during `docker compose build` and automatically
+launches the full navigation stack on `docker compose up`. No further manual steps are needed.
+
+To visualize on the developer laptop:
+
+```bash
+source /opt/ros/humble/setup.bash
+export ROS_DOMAIN_ID=1
+rviz2 -d src/go2_nav_bridge/rviz/nav2.rviz
 ```
 
 For local development with VS Code Dev Containers, see [Development Workflow](#development-workflow).
@@ -79,6 +86,7 @@ Hesai XT16 (192.168.123.20, UDP:2368)
 | `go2_nav_bridge` | local | — | `cmd_vel` → `SportModeCmd` translation; velocity clamping; watchdog; 21 unit tests |
 | `unitree_ros2` | submodule | [unitreerobotics/unitree_ros2](https://github.com/unitreerobotics/unitree_ros2) | Unitree SDK message types (`unitree_go`, `unitree_api`) |
 | `fast_lio_ros2` | submodule | [hku-mars/FAST_LIO](https://github.com/hku-mars/FAST_LIO) | Tightly-coupled LiDAR-IMU SLAM via IEKF + ikd-Tree |
+| `allan_variance_ros2` | submodule | [Autoliv-Research/allan_variance_ros2](https://github.com/Autoliv-Research/allan_variance_ros2) | IMU characterization (Angle Random Walk, Bias Instability) via Allan Variance |
 | `hesai_ros_driver_2` | submodule | [HesaiTechnology/HesaiLidar_ROS2](https://github.com/HesaiTechnology/HesaiLidar_ROS2) | Hesai XT16 ROS 2 driver |
 | `livox_ros_driver2` | submodule | [Livox-SDK/livox_ros_driver2](https://github.com/Livox-SDK/livox_ros_driver2) | Custom message types required by FAST-LIO2 (no Livox hardware needed) |
 
@@ -105,7 +113,7 @@ Hesai XT16 (192.168.123.20, UDP:2368)
 | :--- | :--- | :--- |
 | `extrinsic_T` | `[0.171, 0.0, 0.0908]` m | Official Unitree documentation ⚠️ pending caliper verification |
 | `extrinsic_R` | `I₃` (identity) | Official Unitree documentation |
-| IMU noise (`gyr_cov`, `acc_cov`) | BMI088 datasheet estimates | ⚠️ pending 5-min static rosbag characterization |
+| IMU noise (`gyr_cov`, `acc_cov`) | Measured values (Allan Variance) | ✅ Analyzed via `allan_variance_ros2` |
 
 Config file: [`src/fast_lio_ros2/config/hesai_xt16.yaml`](src/fast_lio_ros2/config/hesai_xt16.yaml)
 
@@ -135,28 +143,14 @@ cd go2_ws
 ### First-time Docker start on robot
 
 ```bash
-# Sync source and start container
+# Sync source, build the image, and start the full stack
 ./sync_to_dog.sh
 ssh unitree@192.168.123.18 "cd ~/go2_ws/docker && docker compose up --build -d"
 ```
 
-### Build
-
-```bash
-docker exec -it go2_navigation bash
-colcon build --symlink-install --cmake-args -DROS_EDITION=ROS2 -DHUMBLE_ROS=humble
-source install/setup.bash
-```
-
-Build a single package:
-
-```bash
-colcon build --symlink-install --cmake-args -DROS_EDITION=ROS2 -DHUMBLE_ROS=humble \
-  --packages-select go2_nav_bridge
-```
-
-> **Note:** `ament_cmake` packages symlink correctly; `ament_python` packages require a full
-> rebuild when YAML/launch files change.
+The workspace is compiled inside the Docker image at build time. No manual
+`colcon build` is needed — `docker compose up -d` launches the full navigation
+stack automatically.
 
 ---
 
@@ -165,29 +159,40 @@ colcon build --symlink-install --cmake-args -DROS_EDITION=ROS2 -DHUMBLE_ROS=humb
 ### Local (VS Code Dev Containers) — preferred for active development
 
 Open the project root in VS Code and run `Dev Containers: Reopen in Container`.
-The container includes all ROS 2 dependencies; use the **ROS 2 extension** for IntelliSense
-and builds, or the integrated terminal:
+Use the **ROS 2 extension** for IntelliSense and builds, or the integrated terminal:
 
 ```bash
 colcon build --symlink-install --cmake-args -DROS_EDITION=ROS2 -DHUMBLE_ROS=humble
 source install/setup.bash
 ```
 
-### Hardware Testing (sync → build → visualize)
+### Hardware Testing (edit → sync → rebuild image → redeploy)
 
 ```bash
-# 1. Sync source to robot over Ethernet
-./sync_to_dog.sh   # rsync src/ → unitree@192.168.123.18
+# 1. Sync updated source to robot
+./sync_to_dog.sh
 
-# 2. Build inside the container on the robot
-docker exec -it go2_navigation bash
-colcon build --symlink-install --cmake-args -DROS_EDITION=ROS2 -DHUMBLE_ROS=humble
-source install/setup.bash
+# 2. Rebuild the Docker image on the robot and restart the stack
+ssh unitree@192.168.123.18 "cd ~/go2_ws/docker && docker compose up --build -d"
 
 # 3. Visualize remotely on the laptop
 source /opt/ros/humble/setup.bash
 export ROS_DOMAIN_ID=1
 rviz2 -d src/go2_nav_bridge/rviz/nav2.rviz
+```
+
+### Interactive Development Shell (dev profile)
+
+To get a bash shell inside the container with the source mounted as a volume
+(for rapid iteration without rebuilding the image):
+
+```bash
+ssh unitree@192.168.123.18 "cd ~/go2_ws/docker && docker compose --profile dev up -d"
+ssh unitree@192.168.123.18 "docker exec -it go2_navigation_dev bash"
+# Inside the container:
+colcon build --symlink-install --cmake-args -DROS_EDITION=ROS2 -DHUMBLE_ROS=humble
+source install/setup.bash
+ros2 launch go2_nav_bridge bringup.launch.py
 ```
 
 ### Final Deployment (ARM64 immutable image)
@@ -196,44 +201,13 @@ Requires `docker buildx` with QEMU configured for ARM64 cross-compilation
 ([Docker multi-platform docs](https://docs.docker.com/build/building/multi-platform/)).
 
 ```bash
-# Build ARM64 image locally
-docker buildx build --platform linux/arm64 -t go2_nav_stack:latest --load .
-
-# Transfer to robot and start
+# Build ARM64 image locally and transfer to robot
+docker buildx build --platform linux/arm64 -t go2_nav_stack:latest --load docker/
 docker save go2_nav_stack:latest | ssh -C unitree@192.168.123.18 'docker load'
 ssh unitree@192.168.123.18 "cd ~/go2_ws/docker && docker compose up -d"
 ```
 
 ---
-
-## Launch
-
-Start nodes in this order:
-
-```bash
-# 1. Hesai XT16 LiDAR driver
-ros2 launch hesai_ros_driver_2 start.py
-
-# 2. Static TF: base_link → hesai_lidar (official Unitree extrinsics)
-ros2 run tf2_ros static_transform_publisher \
-  --x 0.171 --y 0.0 --z 0.0908 \
-  --yaw 0 --pitch 0 --roll 0 \
-  --frame-id base_link --child-frame-id hesai_lidar
-
-# 3. FAST-LIO2 SLAM
-ros2 launch fast_lio mapping.launch.py config_file:=hesai_xt16.yaml rviz:=true
-
-# 4. Nav2 stack (lifecycle manager without map_server/amcl — FAST-LIO2 handles localization)
-ros2 launch go2_nav_bridge navigation.launch.py
-
-# 5. go2_nav_bridge (cmd_vel → SportModeCmd)
-ros2 run go2_nav_bridge bridge_node
-```
-
-> **CycloneDDS:** Without explicit config, CycloneDDS picks a network interface randomly,
-> causing intermittent node discovery failures. The container mounts
-> [`docker/cyclonedds.xml`](docker/cyclonedds.xml) via `CYCLONEDDS_URI` with
-> `<NetworkInterface name="eth0" />`. Verify with `ros2 node list` after launch.
 
 ---
 
@@ -286,7 +260,7 @@ map
 | `go2_nav_bridge` (cmd_vel → SportModeCmd) | ✅ |
 | Docker ARM64 image build & transfer | ⏳ Pending |
 | LiDAR-IMU extrinsics field verification | ⚠️ Pending |
-| IMU noise characterization (static rosbag) | 🔄 Recorded — analysis pending |
+| IMU noise characterization (Allan Variance) | ✅ Completed |
 | End-to-end test: LiDAR → SLAM → Nav2 → bridge → robot motion | ⏳ Pending |
 | 2D occupancy grid from FAST-LIO2 point cloud (octomap_server) | ⏳ Pending |
 
