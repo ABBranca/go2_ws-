@@ -1,13 +1,13 @@
 services:
+  # -- Production service -------------------------------------------------------
+  # docker compose up -d  →  builds image (if needed) and starts full nav stack
   go2_navigation:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
     container_name: go2_navigation
     restart: unless-stopped
-    # Use host network for low-latency DDS communication
     network_mode: host
-    # Allow shared memory between containers/host for high-bandwidth ROS 2 traffic
     ipc: host
     cap_add:
       - NET_ADMIN
@@ -15,9 +15,30 @@ services:
     stdin_open: true
     tty: true
     volumes:
-      # Mount the main workspace into the container (relative to this folder)
+      - ./cyclonedds.xml:/cyclonedds.xml:ro
+    environment:
+      - ROS_DOMAIN_ID=1
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - CYCLONEDDS_URI=file:///cyclonedds.xml
+    # CMD from Dockerfile launches bringup.launch.py — no override here
+
+  # -- Development service ------------------------------------------------------
+  # docker compose --profile dev up -d  →  interactive shell with source mount
+  go2_navigation_dev:
+    profiles: ["dev"]
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: go2_navigation_dev
+    network_mode: host
+    ipc: host
+    cap_add:
+      - NET_ADMIN
+      - SYS_NICE
+    stdin_open: true
+    tty: true
+    volumes:
       - ..:/ros2_ws
-      # Mount the CycloneDDS config with explicit file:/// protocol for URI
       - ./cyclonedds.xml:/cyclonedds.xml:ro
     environment:
       - ROS_DOMAIN_ID=1
