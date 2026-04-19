@@ -1,14 +1,27 @@
 {
-    "clangd.path": "clangd",
-    "clangd.arguments": [
-        "--compile-commands-dir=${workspaceFolder}",
-        "--background-index",
-        "--all-scopes-completion",
-        "--completion-style=detailed",
-        "--header-insertion=iwyu",
-        "--header-insertion-decorators",
-        "--clang-tidy",
-        "--pch-storage=memory"
+    "ROS2.distro": "humble",
+    "python.autoComplete.extraPaths": [
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
     ],
-    "C_Cpp.intelliSenseEngine": "disabled"
+    "python.analysis.extraPaths": [
+        "/opt/ros/humble/lib/python3.10/site-packages",
+        "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ],
+    "[cpp]": {
+        "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
+    },
+    "[c]": {
+        "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
+    },
+    "clangd.arguments": [
+        "--header-insertion=iwyu",
+        "--function-arg-placeholders=true",
+        "--enable-config=true",
+        "--completion-style=bundled"
+    ],
+    "clangd.onConfigChanged": "restart",
+    "cpp.preferredPathSeparator": "/",
+    "editor.formatOnSave": false,
+    "editor.defaultFormatter": null
 }

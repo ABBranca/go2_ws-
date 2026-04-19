@@ -1,9 +1,14 @@
 #!/bin/bash
 
-# Configurazione (IP del Dock)
-ROBOT_IP="192.168.123.18"
-REMOTE_USER="unitree"
-REMOTE_PATH="/home/unitree/go2_ws"
+# Load configuration from .env if present, otherwise use defaults
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "$SCRIPT_DIR/.env" ]; then
+    set -a; source "$SCRIPT_DIR/.env"; set +a
+fi
+
+ROBOT_IP="${ROBOT_IP:-192.168.123.18}"
+REMOTE_USER="${ROBOT_USER:-unitree}"
+REMOTE_PATH="${ROBOT_WORKSPACE:-/home/unitree/go2_ws}"
 
 # Parsing argomenti
 BUILD_IMAGE=false
@@ -45,21 +50,8 @@ fi
 echo ""
 echo "Prossimi passi sul robot (ssh ${REMOTE_USER}@${ROBOT_IP}):"
 echo ""
-if [ "$BUILD_IMAGE" = false ]; then
-    echo "  # Se l'immagine non è ancora presente, buildala dal laptop con:"
-    echo "  # ./sync_to_dog.sh --build-image"
-    echo ""
-fi
-echo "  # Avvia il container"
-echo "  docker run -d \\"
-echo "    --name go2_navigation \\"
-echo "    --network host \\"
-echo "    --privileged \\"
-echo "    -v ${REMOTE_PATH}:/ros2_ws \\"
-echo "    -e ROS_DOMAIN_ID=1 \\"
-echo "    -e RMW_IMPLEMENTATION=rmw_cyclonedds_cpp \\"
-echo "    go2_nav_stack:latest"
+echo "  cd ${REMOTE_PATH}/docker && docker compose up --build -d"
 echo ""
-echo "  # Entra nel container e compila"
-echo "  docker exec -it go2_navigation bash"
-echo "  source /opt/ros/humble/setup.bash && colcon build --symlink-install"
+echo "  # Per il profilo dev (shell interattiva):"
+echo "  cd ${REMOTE_PATH}/docker && docker compose --profile dev up -d"
+echo "  docker exec -it go2_navigation_dev bash"

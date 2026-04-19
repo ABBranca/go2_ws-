@@ -8,7 +8,7 @@ This document records the creation of the Distrobox container used for this proj
 - **Image:** `docker.io/osrf/ros:humble-desktop` (Ubuntu 22.04 Jammy)
 - **NVIDIA Integration:** Enabled (`--nvidia` flag used)
 - **Custom Home Directory:** `~/distrobox/go2_nav_ws` (isolates container configs from host)
-- **Host Workspace Path:** `/home/Ale/Documents/Uni/go2_ws` (accessible inside the container)
+- **Host Workspace Path:** Wherever you cloned `go2_ws` (accessible inside the container via Distrobox's automatic home mount)
 
 ## Setup Commands Executed
 

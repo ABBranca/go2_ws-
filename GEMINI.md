@@ -113,6 +113,7 @@ Hesai XT16 (192.168.123.20:2368 UDP)
 | `go2_nav_bridge` | local | Translates Nav2 `cmd_vel` → Unitree `SportModeCmd` (Apache-2.0, hardened build) |
 | `unitree_ros2` | submodule | Unitree SDK + message types (`unitree_go`, `unitree_api`) |
 | `fast_lio_ros2` | submodule (ROS2 branch) | Tightly-coupled LiDAR-IMU SLAM via IEKF + ikd-Tree |
+| `allan_variance_ros2` | submodule | IMU characterization (Angle Random Walk, Bias Instability) via Allan Variance |
 | `hesai_ros_driver_2` | submodule | Official Hesai XT16 driver |
 | `livox_ros_driver2` | submodule | Provides custom message types required by FAST-LIO2 |
 
@@ -128,7 +129,7 @@ Hesai XT16 (192.168.123.20:2368 UDP)
   - **Tests:** 21 GTest unit tests for `bridge_utils` (edge cases: NaN, Inf, negative limits, boundary conditions) + full `ament_lint_auto` suite (copyright, cpplint, uncrustify, cppcheck, lint_cmake, xmllint).
   - **License:** Apache-2.0 (chosen for `ament_copyright` compatibility — avoids requiring full BSD-3 license text in each file header).
   - Package type: `ament_cmake` (not `ament_python`) so YAML/launch files are symlinked correctly.
-- **FAST-LIO2 config for Hesai XT16:** Config file available at `src/fast_lio_ros2/config/hesai_xt16.yaml`. Extrinsics sourced from official Unitree documentation: `extrinsic_T: [0.171, 0.0, 0.0908]` (m), `extrinsic_R: I₃` (no relative rotation between IMU body and LiDAR frames). IMU noise params (BMI088 datasheet estimates) still require characterization via 5-min static rosbag.
+- **FAST-LIO2 config for Hesai XT16:** Config file available at `src/fast_lio_ros2/config/hesai_xt16.yaml`. Extrinsics sourced from official Unitree documentation: `extrinsic_T: [0.171, 0.0, 0.0908]` (m), `extrinsic_R: I₃` (no relative rotation between IMU body and LiDAR frames). IMU noise parameters (BMI088) were characterized via Allan Variance analysis on 2026-04-09 (see `config/allan_variance.csv` for raw data).
 - **unitree_ros2 ROS version:** The `setup.sh` scripts in the submodule target Foxy; ignore them and source the Humble workspace. Deprecation warnings during build (`ament_export_interfaces`, `rosidl_target_interfaces`) are harmless.
 - **Hesai launch file:** `start.launch` is ROS 1 XML — a ROS 2 Python equivalent is needed.
 - **livox_ros_driver2:** A `package.xml` was manually added to make it compile under ament_cmake; the upstream repo does not include one.
@@ -205,6 +206,11 @@ A thesis from a previous student on the Unitree Go2 + LiDAR combination will be 
 - **CycloneDDS socket receive buffer (Orin host):** `docker/cyclonedds.xml` requests a 4 MB buffer (`SocketReceiveBufferSize min="4194304"`). Requires `net.core.rmem_max ≥ 4194304` on the host. Persistent fix: `echo "net.core.rmem_max=4194304" | sudo tee /etc/sysctl.d/99-ros2-dds.conf && sudo sysctl --system`.
 - **`rmw_cyclonedds_cpp` not installed:** ✅ **FIXED** — `ros-humble-rmw-cyclonedds-cpp` added to `Dockerfile`.
 
+### SLAM / Allan Variance Analysis
+- **allan_variance_ros2 hardcoded "mcap" id:** ✅ **FIXED** — Removed hardcoded storage id in `AllanVarianceComputor.cpp` to allow automatic detection of `sqlite3` bags.
+- **allan_variance_ros2 build failure (Rerun SDK):** ✅ **FIXED** — Updated `plot_imu.cpp` to use `rerun::archetypes::Scalars` (plural) to match version 0.18+ of the SDK.
+- **analysis.py crash on non-finite data:** ✅ **FIXED** — Added rigorous filtering for NaN, Inf, and non-positive values in the Python analysis script to prevent `curve_fit` failures.
+
 ## TODO / Roadmap
 
 ### Next Session Tasks (Build Fixes)
@@ -221,12 +227,12 @@ A thesis from a previous student on the Unitree Go2 + LiDAR combination will be 
 - [x] Establish SSH access to Expansion Dock (`192.168.123.18`)
 - [x] Diagnose MCU networking (DDS traffic not bridged to Wi-Fi)
 - [ ] **[Hardware/Calibration]** Verify Hesai XT16 extrinsics physically (official values: T=[0.171,0,0.0908], R=I₃ — measure with caliper to confirm ±2 mm tolerance) and verify Wi-Fi dongle driver compatibility
-- [ ] **[SLAM Tuning]** Characterize IMU noise (BMI088) via 6-minute static rosbag (recorded 2026-04-08) for initial IEKF white noise tuning; use datasheet fallbacks for bias random walk until a 3-hour capture is performed.
+- [x] **[SLAM Tuning]** Characterize IMU noise (BMI088) via Allan Variance analysis (completed 2026-04-09)
 - [x] Create `cyclonedds.xml` with explicit `<NetworkInterface>` and mount it in Docker Compose via `CYCLONEDDS_URI`
 - [x] Implement `go2_nav_bridge`: `cmd_vel` → `SportModeCmd` translation with watchdog, input sanitization, compiler hardening, and 21 GTest unit tests (all `ament_lint_auto` checks pass)
 - [x] Verify `go2_nav_bridge` is `ament_cmake` (not `ament_python`) for correct `--symlink-install` behavior on YAML/launch files
 - [ ] Publish `base_link → hesai_lidar` static TF via `static_transform_publisher` in the bridge launch file (extrinsics: T=[0.171, 0, 0.0908], R=I₃)
-- [x] Configure FAST-LIO2 YAML for Hesai XT16 (`src/fast_lio_ros2/config/hesai_xt16.yaml` — official Unitree extrinsics; IMU noise from BMI088 datasheet, pending rosbag characterization)
+- [x] Configure FAST-LIO2 YAML for Hesai XT16 (`src/fast_lio_ros2/config/hesai_xt16.yaml` — official Unitree extrinsics; IMU noise measured via Allan Variance)
 - [ ] **[SLAM Extension]** Integrate `octomap_server` or similar to provide 2D Occupancy Grid from FAST-LIO2 point cloud for Nav2
 - [ ] Configure Nav2 with `SmacPlannerHybrid` planner + MPPI controller (replace default NavFn + DWB)
 - [ ] Configure Nav2 lifecycle manager `node_names` — exclude `map_server` and `amcl` (FAST-LIO2 handles localization)
@@ -234,3 +240,12 @@ A thesis from a previous student on the Unitree Go2 + LiDAR combination will be 
 - [ ] **[Baseline Validation]** Verify end-to-end navigation: LiDAR → FAST-LIO2 → Nav2 → bridge → physical motion
 - [ ] **[Baseline Validation]** Conduct at least 3 trials on a measured path to establish quantitative RMSE/FLE baseline
 - [ ] Build and deploy final ARM64 Docker image (`docker save/load`)
+
+## graphify
+
+This project has a graphify knowledge graph at graphify-out/.
+
+Rules:
+- Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure
+- If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
+- After modifying code files in this session, run `graphify update .` to keep the graph current (AST-only, no API cost)

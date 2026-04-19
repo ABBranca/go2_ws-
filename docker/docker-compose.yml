@@ -17,8 +17,8 @@ services:
     volumes:
       - ./cyclonedds.xml:/cyclonedds.xml:ro
     environment:
-      - ROS_DOMAIN_ID=1
-      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-1}
+      - RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION:-rmw_cyclonedds_cpp}
       - CYCLONEDDS_URI=file:///cyclonedds.xml
     # CMD from Dockerfile launches bringup.launch.py — no override here
 
@@ -41,7 +41,7 @@ services:
       - ..:/ros2_ws
       - ./cyclonedds.xml:/cyclonedds.xml:ro
     environment:
-      - ROS_DOMAIN_ID=1
-      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-1}
+      - RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION:-rmw_cyclonedds_cpp}
       - CYCLONEDDS_URI=file:///cyclonedds.xml
     command: bash

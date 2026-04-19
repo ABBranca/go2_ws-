@@ -1,2 +1,29 @@
 CompileFlags:
-  Add: [-std=c++17]
+  CompilationDatabase: build/
+  Remove:
+    - -std=*
+    - -fno-delayed-template-parsing
+  Add:
+    - -std=gnu++17
+    - -fPIC
+
+InlayHints:
+  Enabled: true
+  # ParameterHints: true
+  DeducedTypes: true
+  #TypeHints: true
+
+Hover:
+  ShowAKA: true
+
+Completion:
+  AllScopes: true
+
+Diagnostics:
+  ClangTidy:
+    Add:
+      - google-readability-braced-init-list
+      - readability-const-return-type
+      - readability-inconsistent-declaration-parameter-name
+      - readability-named-parameter
+      - readability-use-anyof-all-of

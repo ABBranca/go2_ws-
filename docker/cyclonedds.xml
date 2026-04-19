@@ -3,6 +3,8 @@
     <Domain Id="any">
         <General>
             <Interfaces>
+                <!-- On the Orin Dock this is eth0; adjust if deploying elsewhere.
+                     To auto-select, replace with: <NetworkInterface autodetermine="true" /> -->
                 <NetworkInterface name="eth0" priority="default" multicast="default" />
             </Interfaces>
         </General>
@@ -11,11 +13,12 @@
                  Requires: sudo sysctl -w net.core.rmem_max=4194304 on the host. -->
             <SocketReceiveBufferSize min="4194304"/>
         </Internal>
+        <!-- To add explicit unicast peers (e.g. developer laptop), uncomment:
         <Discovery>
             <Peers>
-                <!-- Developer laptop — explicit unicast peer to supplement multicast -->
                 <Peer address="192.168.123.10"/>
             </Peers>
         </Discovery>
+        -->
     </Domain>
 </CycloneDDS>

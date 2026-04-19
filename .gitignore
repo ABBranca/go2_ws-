@@ -53,6 +53,15 @@ Thumbs.db
 # Thesis Documents
 Tesi - Angelo Vittozzi.pdf
 
+# AI Intelligence (Graphify & MemPalace)
+graphify-out/
+mempalace.yaml
+entities.json
+.graphify_python
+.graphify_analysis.json
+.mempalace_pid
+.mempalace/
+
 # Secrets
 .ghtoken.txt
 *.pem
@@ -60,3 +69,7 @@ Tesi - Angelo Vittozzi.pdf
 Risorse/
 memory/
 DOCUMENTATION_RESOURCES.md
+
+# MemPalace per-project files (issue #185)
+mempalace.yaml
+entities.json
