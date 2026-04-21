@@ -4,50 +4,46 @@ This file provides guidance to Gemini CLI when working with code in this reposit
 
 ## Development Workflow
 
-Two supported workflows depending on context:
+Three workflows depending on context:
+
+### Production deployment (single command)
+The standard workflow for deploying and running the full navigation stack on the robot.
+```bash
+./sync_to_dog.sh
+ssh unitree@192.168.123.18 "cd ~/go2_ws/docker && docker compose up --build -d"
+```
+The Dockerfile is a multi-stage build: stage 1 (builder) compiles the workspace with `colcon build`; stage 2 (runtime) copies only `install/` into a lean image. The `CMD` launches `bringup.launch.py` which orchestrates the full stack (Hesai driver → static TF → FAST-LIO2 → Nav2 → go2_nav_bridge). **No manual `colcon build` or `ros2 launch` needed.**
+
+### Interactive development shell (dev profile)
+For rapid iteration without rebuilding the Docker image:
+```bash
+ssh unitree@192.168.123.18 "cd ~/go2_ws/docker && docker compose --profile dev up -d"
+ssh unitree@192.168.123.18 "docker exec -it go2_navigation_dev bash"
+# Inside the container:
+colcon build --symlink-install --cmake-args -DROS_EDITION=ROS2 -DHUMBLE_ROS=humble
+source install/setup.bash
+ros2 launch go2_nav_bridge bringup.launch.py
+```
 
 ### Local development (VS Code Dev Containers)
 The preferred IDE environment for active development. Open the project root in VS Code and use the `Dev Containers: Reopen in Container` command. The container is pre-configured with all ROS 2 dependencies and the **ROS 2 extension** provides IntelliSense, debugging, and build management. Build via the extension sidebar or the integrated terminal (`colcon build --symlink-install`).
 
-### Hardware testing cycle
-The standard cycle for testing on the robot: edit locally → sync to robot → build in container → visualize on laptop.
-
-**1. Sync code to robot (Ethernet):**
-```bash
-./sync_to_dog.sh   # rsync src/ → unitree@192.168.123.18
-```
-
-**2. Build inside the Docker container on the robot:**
-```bash
-docker exec -it go2_navigation bash
-colcon build --symlink-install --cmake-args -DROS_EDITION=ROS2 -DHUMBLE_ROS=humble   # NOTE: instant only for ament_cmake packages; ament_python requires rebuild on YAML/launch changes
-source install/setup.bash
-```
-
-**3. Visualize remotely (on laptop):**
-```bash
-source /opt/ros/humble/setup.bash
-export ROS_DOMAIN_ID=1
-rviz2 -d src/go2_nav_bridge/rviz/nav2.rviz
-```
-
 ## Build & Deploy
 
-**Initial Docker start (on robot):**
+**Start the full stack on robot (builds image if needed):**
 ```bash
 cd docker && docker compose up --build -d
 ```
 
-**Build a single package:**
+**Build a single package (inside dev container):**
 ```bash
 colcon build --symlink-install --cmake-args -DROS_EDITION=ROS2 -DHUMBLE_ROS=humble --packages-select go2_nav_bridge
 ```
 
-**Final immutable image (ARM64, when development is complete):**
+**Final immutable image (ARM64 cross-compiled):**
 ```bash
-docker buildx build --platform linux/arm64 -t go2_nav_stack:latest --load .
+docker buildx build --platform linux/arm64 -t go2_nav_stack:latest --load docker/
 docker save go2_nav_stack:latest | ssh -C unitree@192.168.123.18 'docker load'
-# Start the stack on the robot after transfer
 ssh unitree@192.168.123.18 "cd ~/go2_ws/docker && docker compose up -d"
 ```
 
@@ -58,12 +54,16 @@ git submodule update --init --recursive
 
 ## Launch
 
-```bash
-# Hesai XT16 LiDAR driver
-ros2 launch hesai_ros_driver_2 start.py  # ROS 2 conversion of start.launch
+The full stack is launched automatically via `docker compose up -d`. The master launch file is `go2_nav_bridge/launch/bringup.launch.py` which orchestrates:
+1. `static_transform_publisher` — TF `base_link → hesai_lidar`
+2. `hesai_ros_driver` — Hesai XT16 LiDAR driver (`start.py`)
+3. `fast_lio` — FAST-LIO2 SLAM (`mapping.launch.py`, config: `hesai_xt16.yaml`, rviz disabled)
+4. `nav2_bringup` — Nav2 stack via `nav2.launch.py` (SmacPlannerHybrid + MPPI, no map_server/amcl)
+5. `go2_nav_bridge` — `cmd_vel → SportModeCmd` bridge (respawn enabled)
 
-# FAST-LIO2 SLAM
-ros2 launch fast_lio mapping.launch.py config_file:=hesai_xt16.yaml rviz:=true
+For manual launch in the dev container:
+```bash
+ros2 launch go2_nav_bridge bringup.launch.py
 ```
 
 ## Architecture
@@ -147,6 +147,7 @@ Hesai XT16 (192.168.123.20:2368 UDP)
   - `map` → `odom` (provided by FAST-LIO2)
   - `odom` → `base_link` (provided by FAST-LIO2)
   - `base_link` → `hesai_lidar` (static transform — official Unitree extrinsics: T=[0.171, 0, 0.0908] m, R=I₃)
+- **Gemini CLI subagents:** Parallel agents do not inherit the parent session's file write permissions. Use agents for read-only research/analysis; apply all file writes in the main session.
 
 ## FAST-LIO2 Reference
 
@@ -213,12 +214,11 @@ A thesis from a previous student on the Unitree Go2 + LiDAR combination will be 
 
 ## TODO / Roadmap
 
-### Next Session Tasks (Build Fixes)
-- [x] **[Fix]** Update `docker/Dockerfile` to include `libpcl-dev` and `ros-humble-pcl-ros` dependencies
-- [x] **[Fix]** Add `ros-humble-rmw-cyclonedds-cpp` to Dockerfile and fix container TTY (stdin_open/tty) and CycloneDDS config
-- [x] **[Fix]** `src/livox_ros_driver2/package.xml` already present (identical to `package_ROS2.xml`); colcon build now passes `-DROS_EDITION=ROS2 -DHUMBLE_ROS=humble`
-- [ ] **[Fix]** Rebuild Docker image locally: `docker buildx build --platform linux/arm64 -t go2_nav_stack:latest --load .`
-- [ ] **[Fix]** Re-transfer the new Docker image to the robot and verify the container build on Orin
+### Next Session Tasks (Single-Command Startup — branch `feat/single-command-startup`)
+Tasks 1–7 of the implementation plan are complete. Remaining:
+- [ ] **[Validation]** End-to-end validation on robot: `./sync_to_dog.sh` → `docker compose up --build -d` → verify all nodes running (`ros2 node list`), TF chain, LiDAR topic Hz. Requires physical access to Orin + LiDAR powered on. See `docs/superpowers/plans/2026-04-09-single-command-startup.md` Task 8 for detailed steps.
+- [ ] **[Tuning]** Nav2 `nav2_params.yaml` MPPI weights and time horizon are initial estimates — require field testing. Go2 footprint polygon (`robot_radius: 0.35`) is approximate — refine through iterative testing.
+- [ ] Merge `feat/single-command-startup` → `main` after validation passes.
 
 ### General Roadmap
 - [x] Integrate ROS 2 driver for Hesai XT16 LiDAR
@@ -231,11 +231,14 @@ A thesis from a previous student on the Unitree Go2 + LiDAR combination will be 
 - [x] Create `cyclonedds.xml` with explicit `<NetworkInterface>` and mount it in Docker Compose via `CYCLONEDDS_URI`
 - [x] Implement `go2_nav_bridge`: `cmd_vel` → `SportModeCmd` translation with watchdog, input sanitization, compiler hardening, and 21 GTest unit tests (all `ament_lint_auto` checks pass)
 - [x] Verify `go2_nav_bridge` is `ament_cmake` (not `ament_python`) for correct `--symlink-install` behavior on YAML/launch files
-- [x] Publish `base_link → hesai_lidar` static TF via `static_transform_publisher` in the bridge launch file (extrinsics: T=[0.171, 0, 0.0908], R=I₃)
+- [x] Publish `base_link → hesai_lidar` static TF via `static_transform_publisher` in `bringup.launch.py` (extrinsics: T=[0.171, 0, 0.0908], R=I₃)
 - [x] Configure FAST-LIO2 YAML for Hesai XT16 (`src/fast_lio_ros2/config/hesai_xt16.yaml` — official Unitree extrinsics; IMU noise measured via Allan Variance)
+- [x] Multi-stage Dockerfile: builder compiles workspace, runtime image launches `bringup.launch.py` via CMD
+- [x] Docker Compose prod service (no `command: bash`) + dev profile with volume mount
+- [x] Master launch file `bringup.launch.py` orchestrating full stack (Hesai → TF → FAST-LIO2 → Nav2 → bridge)
+- [x] Configure Nav2 with `SmacPlannerHybrid` planner + MPPI controller (`nav2_params.yaml`)
+- [x] Configure Nav2 lifecycle manager `node_names` — exclude `map_server` and `amcl` (FAST-LIO2 handles localization)
 - [ ] **[SLAM Extension]** Integrate `octomap_server` or similar to provide 2D Occupancy Grid from FAST-LIO2 point cloud for Nav2
-- [ ] Configure Nav2 with `SmacPlannerHybrid` planner + MPPI controller (replace default NavFn + DWB)
-- [ ] Configure Nav2 lifecycle manager `node_names` — exclude `map_server` and `amcl` (FAST-LIO2 handles localization)
 - [ ] Resolve wireless telemetry (Wi-Fi dongle on Dock or DDS Discovery Server)
 - [ ] **[Baseline Validation]** Verify end-to-end navigation: LiDAR → FAST-LIO2 → Nav2 → bridge → physical motion
 - [ ] **[Baseline Validation]** Conduct at least 3 trials on a measured path to establish quantitative RMSE/FLE baseline

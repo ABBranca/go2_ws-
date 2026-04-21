@@ -1,0 +1,5 @@
+imu_topic: "/utlidar/imu"
+imu_rate: 250
+measure_rate: 250
+sequence_duration: 360
+sequence_offset: 0

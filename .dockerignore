@@ -1,0 +1,15 @@
+build/
+install/
+log/
+**/build/
+**/install/
+**/log/
+**/.pyc
+**/.pyo
+**/.pyd
+__pycache__/
+**/.git
+**/.gitignore
+**/.gitmodules
+**/.vscode/
+**/.clangd/
