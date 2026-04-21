@@ -52,6 +52,13 @@ def generate_launch_description():
         ),
     )
 
+    # 4.5 Octomap Server (generates 2D occupancy grid from 3D cloud)
+    octomap_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(go2_nav_bridge_dir, 'launch', 'octomap.launch.py')
+        ),
+    )
+
     # 5. go2_nav_bridge: cmd_vel -> SportModeCmd
     bridge_node = Node(
         package='go2_nav_bridge',
@@ -67,5 +74,6 @@ def generate_launch_description():
         hesai_launch,
         fast_lio_launch,
         nav2_launch,
+        octomap_launch,
         bridge_node,
     ])

@@ -1,5 +1,67 @@
 # Session Diary
 
+## Session: 2026-04-21
+
+### Agenda
+- Integrazione OctoMap per la generazione di Occupancy Grid 2D da FAST-LIO2
+- Aggiornamento Dockerfile con dipendenze OctoMap
+- Rebuild immagine Docker ARM64 per il robot
+- Configurazione Nav2 per utilizzare la mappa proiettata di OctoMap
+
+### Progress
+- **OctoMap Integration**: Creato `src/go2_nav_bridge/launch/octomap.launch.py` per configurare il server OctoMap (risoluzione 5cm, range 5m).
+- **Launch Files**: Aggiornato `bringup.launch.py` per includere l'avvio di OctoMap.
+- **Dockerfile**: Aggiornate le sezioni `builder` e `runtime` con `ros-humble-octomap-server` e `ros-humble-octomap-ros`.
+- **Package Config**: Aggiunte dipendenze OctoMap in `src/go2_nav_bridge/package.xml`.
+- **Nav2 Config**: Aggiornato `nav2_params.yaml` per includere un `static_layer` nel `global_costmap` che sottoscrive `/projected_map`.
+- **Deployment Strategy**: Interrotta build emulata su laptop. Si procederà con build nativa sull'Orin tramite `docker compose up --build -d` dopo il sync dei sorgenti, per massimizzare la velocità e affidabilità del build.
+
+### Status of Key Components
+| Component | Status | Notes |
+|---|---|---|
+| Docker ARM64 | Ready to Build | Native build on robot chosen as primary path |
+| OctoMap | Done | Configured and integrated in launch/params |
+| Nav2 | Done | Updated to use OctoMap projected grid |
+
+### Open Items / Next Steps
+- [ ] Eseguire `./sync_to_dog.sh` per inviare sorgenti e Dockerfile al robot
+- [ ] Testare l'intero stack sul robot: `cd docker && docker compose up --build -d`
+- [ ] Verificare la generazione della mappa 2D in RViz2 tramite `/projected_map`
+
+---
+
+## Session: 2026-04-19
+
+### Agenda
+- Allineamento ai mandati di progetto: attivazione e configurazione di `graphify` e `mempalace`
+- Risoluzione discrepanze TF statico tra `GEMINI.md` e `CLAUDE.md`
+- Verifica e finalizzazione configurazione Docker (Dockerfile, Compose, CycloneDDS)
+- Analisi architettura tramite Graphify Wiki
+
+### Progress
+- **MemPalace**: Inizializzato e completato il mining del progetto (`mempalace init . && mempalace mine .`). Creata memoria semantica locale per persistenza decisionale.
+- **Graphify**: Aggiornato grafo AST (7824 nodi). Wiki generato con successo per navigazione strutturata. Configurato per operare in modalità `--no-viz` causa dimensioni elevate.
+- **TF Statico**: Verificato in `src/go2_nav_bridge/launch/bringup.launch.py`. Task confermato come COMPLETATO (extrinsics T=[0.171, 0, 0.0908]).
+- **Docker**: Verificato `docker/Dockerfile` e `docker/docker-compose.yml`. Le dipendenze PCL (`libpcl-dev`, `ros-humble-pcl-ros`) e CycloneDDS (`ros-humble-rmw-cyclonedds-cpp`) sono già state integrate. TTY e volumi per `cyclonedds.xml` configurati correttamente.
+- **Status Sync**: Sincronizzati i file di contesto `GEMINI.md` e `SESSION_DIARY.md` con lo stato reale del progetto.
+
+### Status of Key Components
+| Component | Status | Notes |
+|---|---|---|
+| MemPalace | Active | Local semantic memory indexed (167 files) |
+| Graphify | Active | Wiki ready in `graphify-out/wiki/` |
+| `bringup.launch.py` | Done | Static TF, Hesai, FAST-LIO2, Nav2, Bridge integrated |
+| Dockerfile | Done | Build and Runtime stages updated with all dependencies |
+| CycloneDDS | Done | XML mounted and environment variables set |
+
+### Open Items / Next Steps
+- [ ] Rebuild immagine Docker ARM64: `docker buildx build --platform linux/arm64 -t go2_nav_stack:latest --load docker/`
+- [ ] Trasferire l'immagine sul robot e verificare il deployment
+- [ ] Testare l'intero stack `bringup.launch.py` su hardware reale
+- [ ] Investigare eventuali errori residui nei plugin di Claude Code
+
+---
+
 ## Session: 2026-04-04
 
 ### Agenda
