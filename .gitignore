@@ -12,6 +12,9 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 .mypy_cache/
+.venv/
+venv/
+env/
 
 # C / C++
 *.o
@@ -22,36 +25,51 @@ CMakeCache.txt
 CMakeFiles/
 compile_commands.json
 
-# ROS bags (large binary files)
+# ROS bags & Raw Data (large binary files)
 *.bag
 *.bag.active
 *.db3
+imu_static_*/
 
-# Docker
+# Docker & Environment
 .env
+.env*.local
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
 # Editors & IDEs
 .vscode/*
 !.vscode/settings.json
 !.vscode/extensions.json
 .idea/
-# Clangd index cache (machine-specific binary files)
+.clangd/
+.ccls-cache/
 .cache/
 *.swp
 *.swo
 *~
 *.orig
 
-# Claude Code (local config & memory)
+# Claude Code & Gemini CLI (local config & memory)
 .claude/
 !.claude/skills/
+.oac.json
+gemini_transfer_prompt.md
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Thesis Documents
+# Thesis Documents & Local Notes
 Tesi - Angelo Vittozzi.pdf
+acceleration.png
+gyro.png
+[0-9]*-*.txt
 
 # AI Intelligence (Graphify & MemPalace)
 graphify-out/
@@ -62,7 +80,7 @@ entities.json
 .mempalace_pid
 .mempalace/
 
-# Secrets
+# Secrets & Resources
 .ghtoken.txt
 *.pem
 *.key
@@ -70,6 +88,8 @@ Risorse/
 memory/
 DOCUMENTATION_RESOURCES.md
 
-# MemPalace per-project files (issue #185)
-mempalace.yaml
-entities.json
+# Archives
+*.tar.gz
+*.zip
+*.7z
+*.rar
