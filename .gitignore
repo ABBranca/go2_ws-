@@ -61,6 +61,14 @@ yarn-error.log*
 .oac.json
 gemini_transfer_prompt.md
 
+# AI Agent configs (tool-specific, non-essential)
+AGENTS.md
+docs/superpowers/
+.opencode/
+.token-savior-cache.json
+.gemini/
+Modelfile
+
 # OS
 .DS_Store
 Thumbs.db
