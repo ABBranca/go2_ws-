@@ -17,7 +17,7 @@ services:
     volumes:
       - ./cyclonedds.xml:/cyclonedds.xml:ro
     environment:
-      - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-1}
+      - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
       - RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION:-rmw_cyclonedds_cpp}
       - CYCLONEDDS_URI=file:///cyclonedds.xml
     # CMD from Dockerfile launches bringup.launch.py — no override here
@@ -29,6 +29,7 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile
+      target: builder   # uses the builder stage — has colcon, cmake, g++
     container_name: go2_navigation_dev
     network_mode: host
     ipc: host
@@ -41,7 +42,7 @@ services:
       - ..:/ros2_ws
       - ./cyclonedds.xml:/cyclonedds.xml:ro
     environment:
-      - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-1}
+      - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
       - RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION:-rmw_cyclonedds_cpp}
       - CYCLONEDDS_URI=file:///cyclonedds.xml
     command: bash

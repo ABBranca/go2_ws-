@@ -3,23 +3,25 @@
     <Domain Id="any">
         <General>
             <Interfaces>
-                <NetworkInterface name="eth0" priority="default" multicast="default" />
+                <NetworkInterface name="eno1" priority="1" />
             </Interfaces>
             <AllowMulticast>true</AllowMulticast>
+            <Transport>udp</Transport>
         </General>
         <Discovery>
             <Peers>
                 <Peer address="127.0.0.1"/>
                 <Peer address="192.168.123.18"/>
-                <!-- Laptop developer machine — sostituire con IP reale sulla 192.168.123.0/24 -->
-                <Peer address="192.168.123.222"/>
             </Peers>
             <ParticipantIndex>auto</ParticipantIndex>
+            <MaxAutoParticipantIndex>120</MaxAutoParticipantIndex>
         </Discovery>
         <Internal>
-            <!-- Request 4 MiB socket receive buffer for high-bandwidth PointCloud2 traffic.
-                 Requires: sudo sysctl -w net.core.rmem_max=4194304 on the host. -->
             <SocketReceiveBufferSize min="4 MiB"/>
         </Internal>
+        <Tracing>
+            <Verbosity>config</Verbosity>
+            <OutputFile>/tmp/cyclone_laptop.log</OutputFile>
+        </Tracing>
     </Domain>
 </CycloneDDS>

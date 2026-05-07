@@ -1,0 +1,10 @@
+# Ignore large vendor submodules and build artifacts
+build/
+install/
+log/
+.git/
+src/hesai_ros_driver_2/
+src/unitree_ros2/
+src/livox_ros_driver2/
+src/allan_variance_ros2/
+# Keep fast_lio_ros2 and go2_nav_bridge (the core project logic)

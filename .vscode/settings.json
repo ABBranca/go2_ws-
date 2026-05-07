@@ -18,10 +18,12 @@
         "--header-insertion=iwyu",
         "--function-arg-placeholders=true",
         "--enable-config=true",
-        "--completion-style=bundled"
+        "--completion-style=bundled",
+        "--compile-commands-dir=${workspaceFolder}/build/go2_nav_bridge"
     ],
     "clangd.onConfigChanged": "restart",
     "cpp.preferredPathSeparator": "/",
     "editor.formatOnSave": false,
-    "editor.defaultFormatter": null
+    "editor.defaultFormatter": null,
+    "cmake.sourceDirectory": "${workspaceFolder}/src/fast_lio_ros2"
 }

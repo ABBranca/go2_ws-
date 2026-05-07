@@ -3,7 +3,11 @@
 #
 # This file configures Nav2 for autonomous navigation on the Unitree Go2
 # quadruped robot. Key principles:
-# - FAST-LIO2 provides full localization (map → odom → base_link)
+# - FAST-LIO2 publishes camera_init → body TF only. Static identity bridges
+#   in bringup.launch.py expand it into the canonical Nav2 chain:
+#       map ─[id]─> odom ─[id]─> camera_init ─[FAST-LIO2]─> body ─[id]─> base_link
+#   No separate map→odom corrector is run (no AMCL); /utlidar/robot_odom is
+#   consumed by the BT only as a Twist feedback topic, not as TF source.
 # - No AMCL or map_server; only dynamic obstacle avoidance
 # - SmacPlannerHybrid with Reeds-Shepp for non-holonomic planning
 # - MPPI controller for smooth trajectory execution
@@ -17,7 +21,7 @@ bt_navigator:
     use_sim_time: False
     global_frame: map
     robot_base_frame: base_link
-    odom_topic: /Odometry
+    odom_topic: /utlidar/robot_odom
     bt_loop_duration: 10
     default_bt_xml_filename: "navigate_w_replanning_and_recovery.xml"
     plugin_lib_names:
@@ -80,9 +84,16 @@ controller_server:
     FollowPath:
       plugin: "nav2_mppi_controller::MPPIController"
       motion_model: "DiffDrive"
-      critics: ["ConstraintCritic", "GoalCritic", "GoalAngleCritic",
-                "PathAlignCritic", "PathFollowCritic", "PathAngleCritic",
-                "PreferForwardCritic"]
+      critics:
+        [
+          "ConstraintCritic",
+          "GoalCritic",
+          "GoalAngleCritic",
+          "PathAlignCritic",
+          "PathFollowCritic",
+          "PathAngleCritic",
+          "PreferForwardCritic",
+        ]
       vx_max: 1.0
       vx_min: -0.5
       vy_max: 0.0
@@ -238,12 +249,18 @@ planner_server:
       # Maximum robot footprint (safety)
       max_robot_pose_search_dist: 2.5
 
-recoveries_server:
+behavior_server:
   ros__parameters:
-    costmap_topic: local_costmap/costmap_raw
-    footprint_topic: local_costmap/published_footprint
+    local_costmap_topic: local_costmap/costmap_raw
+    local_footprint_topic: local_costmap/published_footprint
+    global_costmap_topic: global_costmap/costmap_raw
+    global_footprint_topic: global_costmap/published_footprint
     cycle_frequency: 10.0
-    recovery_plugins: ["spin", "backup", "wait", "drive_on_heading"]
+    behavior_plugins: ["spin", "backup", "wait", "drive_on_heading"]
+    local_frame: odom
+    global_frame: map
+    robot_base_frame: base_link
+    transform_tolerance: 0.1
     spin:
       plugin: "nav2_behaviors/Spin"
       simulate_ahead_time: 2.0
@@ -274,7 +291,5 @@ lifecycle_manager_navigation:
   ros__parameters:
     use_sim_time: False
     autostart: True
-    node_names: ["controller_server",
-                 "planner_server",
-                 "behavior_server",
-                 "bt_navigator"]
+    node_names:
+      ["controller_server", "planner_server", "behavior_server", "bt_navigator"]

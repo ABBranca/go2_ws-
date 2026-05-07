@@ -41,7 +41,7 @@ To visualize on the developer laptop:
 
 ```bash
 source /opt/ros/humble/setup.bash
-export ROS_DOMAIN_ID=1
+export ROS_DOMAIN_ID=0
 rviz2 -d src/go2_nav_bridge/rviz/nav2.rviz
 ```
 
@@ -177,7 +177,7 @@ ssh unitree@192.168.123.18 "cd ~/go2_ws/docker && docker compose up --build -d"
 
 # 3. Visualize remotely on the laptop
 source /opt/ros/humble/setup.bash
-export ROS_DOMAIN_ID=1
+export ROS_DOMAIN_ID=0
 rviz2 -d src/go2_nav_bridge/rviz/nav2.rviz
 ```
 

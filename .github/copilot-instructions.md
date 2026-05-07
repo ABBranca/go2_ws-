@@ -69,7 +69,7 @@ Unitree Go2 MCU (motion control)
 
 - **ROS 2 Distribution**: Humble
 - **Middleware**: CycloneDDS
-- **ROS_DOMAIN_ID**: 1
+- **ROS_DOMAIN_ID**: 0
 - **Container**: `go2_navigation` (runs on Expansion Dock at 192.168.123.18)
 - **Hostname resolution**: Network mode is `host` (docker-compose.yml)
 
@@ -97,7 +97,7 @@ Unitree Go2 MCU (motion control)
 4. **Visualize remotely** on your laptop:
    ```bash
    source /opt/ros/humble/setup.bash
-   export ROS_DOMAIN_ID=1
+   export ROS_DOMAIN_ID=0
    rviz2 -d src/go2_nav_bridge/rviz/nav2.rviz
    ```
 

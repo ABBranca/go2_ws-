@@ -1,31 +1,55 @@
 {
-  "name": "Go2 Navigation (Humble)",
-  "dockerFile": "Dockerfile",
-  "runArgs": [
-    "--privileged",
-    "--network=host"
-  ],
-  "workspaceMount": "source=${localWorkspaceFolder},target=/${localWorkspaceFolderBasename},type=bind",
-  "workspaceFolder": "/${localWorkspaceFolderBasename}",
-  "mounts": [
-    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.bash_history,target=/home/ubuntu/.bash_history,type=bind"
-  ],
-  "containerEnv": {
-    "ROS_DOMAIN_ID": "1",
-    "RMW_IMPLEMENTATION": "rmw_cyclonedds_cpp"
-  },
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "llvm-vs-code-extensions.vscode-clangd",
-        "ms-iot.vscode-ros",
-        "ms-python.python"
-      ],
-      "settings": {
-        "C_Cpp.intelliSenseEngine": "disabled"
-      }
-    }
-  },
-  "postCreateCommand": "rm -rf build/ install/ log/ && sudo apt-get update && rosdep update && rosdep install --from-paths src --ignore-src -r -y --skip-keys 'unitree_go unitree_api'",
-  "postStartCommand": "echo '\\n[Dev Container ready] Build the workspace:\\n  source /opt/ros/humble/setup.bash\\n  colcon build --symlink-install --cmake-args -DROS_EDITION=ROS2 -DHUMBLE_ROS=humble -DCMAKE_EXPORT_COMPILE_COMMANDS=ON\\n\\nIf build fails with CMake cache errors (switching from distrobox), clean first:\\n  rm -rf build/ install/ log/\\n'"
+    "name": "Go2 Navigation Dev",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "workspaceFolder": "/workspaces/go2_ws",
+    "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/go2_ws,type=bind,consistency=cached",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-iot.vscode-ros",
+                "ms-vscode.cpptools",
+                "llvm-vs-code-extensions.vscode-clangd",
+                "twxs.cmake",
+                "ms-python.python",
+                "ranch-hand-robotics.rde-ros-2",
+                "anthropic.claude-code"
+            ],
+            "settings": {
+                "ros.distro": "humble",
+                "clangd.arguments": [
+                    "--background-index",
+                    "--compile-commands-dir=${workspaceFolder}/build",
+                    "-j=4",
+                    "--clang-tidy",
+                    "--all-scopes-completion",
+                    "--completion-style=detailed",
+                    "--header-insertion=iwyu"
+                ],
+                "C_Cpp.intelliSenseEngine": "disabled",
+                "cmake.configureOnOpen": false,
+                "python.autoComplete.extraPaths": [
+                    "/opt/ros/humble/lib/python3.10/site-packages"
+                ],
+                "python.analysis.extraPaths": [
+                    "/opt/ros/humble/lib/python3.10/site-packages"
+                ]
+            }
+        }
+    },
+    "remoteUser": "ros",
+    "updateRemoteUserUID": true,
+    "runArgs": [
+        "--network=host",
+        "--ipc=host",
+        "--cap-add=NET_ADMIN",
+        "--cap-add=SYS_NICE"
+    ],
+    "containerEnv": {
+        "RMW_IMPLEMENTATION": "rmw_cyclonedds_cpp",
+        "CYCLONEDDS_URI": "file://${containerWorkspaceFolder}/.devcontainer/cyclonedds_dev.xml",
+        "ROS_DOMAIN_ID": "0"
+    },
+    "postCreateCommand": "bash .devcontainer/postCreateCommand.sh"
 }

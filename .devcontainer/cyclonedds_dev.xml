@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CycloneDDS>
+    <Domain Id="any">
+        <General>
+            <Interfaces>
+                <!-- Auto-select the interface that has a route to 192.168.123.x.
+                     With --network=host the container sees all host NICs, so
+                     CycloneDDS will pick whichever one the OS routes to the peer. -->
+                <NetworkInterface autodetermine="true" />
+            </Interfaces>
+            <!-- Enable multicast: required for intra-container and same-subnet
+                 DDS discovery. Falls back to unicast peers for cross-subnet. -->
+            <AllowMulticast>true</AllowMulticast>
+        </General>
+        <Discovery>
+            <Peers>
+                <Peer address="127.0.0.1"/>
+                <!-- Robot Orin Dock: explicit unicast so DDS discovery works
+                     through Docker Desktop's NAT/routing layer -->
+                <Peer address="192.168.123.18"/>
+            </Peers>
+            <ParticipantIndex>auto</ParticipantIndex>
+        </Discovery>
+        <Internal>
+            <SocketReceiveBufferSize min="200kB"/>
+        </Internal>
+    </Domain>
+</CycloneDDS>

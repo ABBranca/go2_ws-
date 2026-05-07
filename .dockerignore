@@ -13,3 +13,10 @@ __pycache__/
 **/.gitmodules
 **/.vscode/
 **/.clangd/
+*.bag
+*.db3
+*.mcap
+*.pcd
+*.ply
+graphify-out/
+Modelfile

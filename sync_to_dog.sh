@@ -12,9 +12,11 @@ REMOTE_PATH="${ROBOT_WORKSPACE:-/home/unitree/go2_ws}"
 
 # Parsing argomenti
 BUILD_IMAGE=false
+BUILD_DEV_IMAGE=false
 for arg in "$@"; do
   case $arg in
-    --build-image) BUILD_IMAGE=true ;;
+    --build-image)     BUILD_IMAGE=true ;;
+    --build-dev-image) BUILD_DEV_IMAGE=true ;;
   esac
 done
 
@@ -37,13 +39,31 @@ if [ "$BUILD_IMAGE" = true ]; then
     echo "--- Build immagine Docker ARM64 ---"
     docker buildx build \
         --platform linux/arm64 \
+        -f docker/Dockerfile \
         -t go2_nav_stack:latest \
         --load \
-        docker/
+        .
 
-    echo "--- Trasferimento immagine al robot (via SSH pipe) ---"
-    docker save go2_nav_stack:latest | ssh -C ${REMOTE_USER}@${ROBOT_IP} 'docker load'
+    echo "--- Trasferimento immagine al robot (via SSH pipe con gzip) ---"
+    docker save go2_nav_stack:latest | gzip | ssh ${REMOTE_USER}@${ROBOT_IP} 'docker load'
     echo "--- Immagine trasferita! ---"
+fi
+
+# ── 2b. (Opzionale) Build stage builder e trasferimento come immagine dev ─────
+if [ "$BUILD_DEV_IMAGE" = true ]; then
+    echo ""
+    echo "--- Build immagine dev ARM64 (stage: builder) ---"
+    docker buildx build \
+        --platform linux/arm64 \
+        --target builder \
+        -f docker/Dockerfile \
+        -t go2_nav_stack:dev \
+        --load \
+        .
+
+    echo "--- Trasferimento go2_nav_stack:dev al robot ---"
+    docker save go2_nav_stack:dev | gzip | ssh ${REMOTE_USER}@${ROBOT_IP} 'docker load'
+    echo "--- Immagine dev trasferita! ---"
 fi
 
 # ── 3. Istruzioni post-sync ───────────────────────────────────────────────────

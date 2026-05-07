@@ -1,3 +1,15 @@
+"""mapping_only.launch.py — lab map acquisition pipeline.
+
+Drops Nav2 (no autonomous goal navigation) and keeps the SLAM/teleop chain:
+
+    [Hesai driver] ──/lidar_points──┐
+                                    ├──> [FAST-LIO2] ──/cloud_registered──> [octomap]
+    [Go2 MCU via DDS] ──/utlidar/imu┘
+    [Joystick → /cmd_vel] ──> [bridge_node] ──> SportModeCmd (manual teleop)
+
+PCD save handled by FAST-LIO2 (pcd_save.pcd_save_en=true in hesai_xt16.yaml).
+Output file: ./hesai_xt16_map.pcd in the working directory of fastlio_mapping.
+"""
 import os
 
 from ament_index_python.packages import get_package_share_directory
@@ -25,26 +37,9 @@ def generate_launch_description():
     fast_lio_dir = get_package_share_directory('fast_lio')
     go2_nav_bridge_dir = get_package_share_directory('go2_nav_bridge')
 
-    # FAST-LIO2 hardcodes parent='camera_init', child='body' in laserMapping.cpp.
-    # Nav2 expects the canonical chain map → odom → base_link. Static identity
-    # bridges below reconcile both worlds without patching upstream FAST-LIO2:
-    #
-    #   map ─[id]─> odom ─[id]─> camera_init ─[FAST-LIO2 dyn]─> body ─[id]─> base_link
-    #
-    # Consequences:
-    # - map→odom is identity (no AMCL drift correction; acceptable for indoor
-    #   SLAM where FAST-LIO2 keeps drift bounded via loop closure on the local
-    #   submap). Replace with a proper map→odom corrector if multi-session
-    #   relocalisation becomes a requirement.
-    # - local_costmap.global_frame=odom resolves through the chain above.
-    # - octomap (frame_id=map) resolves cloud_registered via camera_init→map.
-    tf_map_odom = _static_tf('map', 'odom')
-    tf_odom_camera_init = _static_tf('odom', 'camera_init')
+    # FAST-LIO2 publishes camera_init→body. Bridge to map/base_link below.
+    tf_map_camera_init = _static_tf('map', 'camera_init')
     tf_body_base_link = _static_tf('body', 'base_link')
-
-    # base_link → hesai_lidar — official Unitree Go2 Expansion Dock extrinsics
-    # (T=[0.171, 0, 0.0908], R=I_3). Same values used as IMU→LiDAR extrinsic_T
-    # inside hesai_xt16.yaml, consistent with body ≡ base_link convention.
     tf_base_link_hesai = _static_tf('base_link', 'hesai_lidar',
                                     x='0.171', y='0.0', z='0.0908')
 
@@ -64,12 +59,6 @@ def generate_launch_description():
         }.items(),
     )
 
-    nav2_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(go2_nav_bridge_dir, 'launch', 'nav2.launch.py')
-        ),
-    )
-
     octomap_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(go2_nav_bridge_dir, 'launch', 'octomap.launch.py')
@@ -86,13 +75,11 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        tf_map_odom,
-        tf_odom_camera_init,
+        tf_map_camera_init,
         tf_body_base_link,
         tf_base_link_hesai,
         hesai_launch,
         fast_lio_launch,
-        nav2_launch,
         octomap_launch,
         bridge_node,
     ])

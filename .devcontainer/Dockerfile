@@ -1,52 +1,54 @@
-FROM osrf/ros:humble-desktop
+FROM ros:humble-ros-base
 
-# Add ubuntu user with same UID and GID as your host system, if it doesn't already exist
-# Since Ubuntu 24.04, a non-root user is created by default with the name vscode and UID=1000
-ARG USERNAME=ubuntu
+ENV DEBIAN_FRONTEND=noninteractive
+SHELL ["/bin/bash", "-c"]
+
+# Install dependencies needed for development
+RUN apt-get update && apt-get install -y \
+  build-essential \
+  cmake \
+  git \
+  clangd \
+  clang-format \
+  python3-colcon-common-extensions \
+  python3-rosdep \
+  python3-numpy \
+  ros-humble-rmw-cyclonedds-cpp \
+  ros-humble-nav2-bringup \
+  ros-humble-nav2-mppi-controller \
+  ros-humble-nav2-smac-planner \
+  ros-humble-robot-localization \
+  ros-humble-octomap-server \
+  ros-humble-octomap-ros \
+  ros-humble-rosbag2-storage-mcap \
+  ros-humble-diagnostic-updater \
+  libpcl-dev \
+  ros-humble-pcl-ros \
+  libapr1-dev \
+  libaprutil1-dev \
+  sudo \
+  nano \
+  gdb \
+  curl \
+  wget \
+  procps \
+  libatomic1 \
+  lsb-release \
+  && rm -rf /var/lib/apt/lists/*
+
+# Add non-root user
+ARG USERNAME=ros
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
-RUN if ! id -u $USER_UID >/dev/null 2>&1; then \
-        groupadd --gid $USER_GID $USERNAME && \
-        useradd -s /bin/bash --uid $USER_UID --gid $USER_GID -m $USERNAME; \
-    fi
-# Add sudo support for the non-root user
-RUN apt-get update && \
-    apt-get install -y sudo && \
-    echo "$USERNAME ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/$USERNAME && \
-    chmod 0440 /etc/sudoers.d/$USERNAME
 
-# Switch from root to user
+RUN groupadd --gid $USER_GID $USERNAME \
+    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME \
+    && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
+    && chmod 0440 /etc/sudoers.d/$USERNAME
+
 USER $USERNAME
 
-# Add user to video group to allow access to webcam
-RUN sudo usermod --append --groups video $USERNAME
-
-# Update all packages
-RUN sudo apt update && sudo apt upgrade -y
-
-# Install Git
-RUN sudo apt install -y git
-
-# Rosdep update
-RUN rosdep update
-
-# Source the ROS setup file
-RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> ~/.bashrc
-
-################################
-## ADD ANY CUSTOM SETUP BELOW ##
-################################
-
-# Build dependencies aligned with docker/Dockerfile (production)
-RUN sudo apt-get update && sudo apt-get install -y --no-install-recommends \
-    build-essential \
-    clangd \
-    python3-colcon-common-extensions \
-    ros-humble-rmw-cyclonedds-cpp \
-    ros-humble-nav2-bringup \
-    ros-humble-nav2-mppi-controller \
-    ros-humble-nav2-smac-planner \
-    ros-humble-robot-localization \
-    libpcl-dev \
-    ros-humble-pcl-ros \
-    && sudo rm -rf /var/lib/apt/lists/*
+# Setup bashrc
+RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc \
+    && echo "export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp" >> ~/.bashrc \
+    && echo "export ROS_DOMAIN_ID=0" >> ~/.bashrc
