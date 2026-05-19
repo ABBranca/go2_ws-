@@ -1,0 +1,11 @@
+{
+  "enable_viewer": false,
+  "odometry_type": "gpu",
+  "sub_mapping_type": "gpu",
+  "global_mapping_type": "gpu",
+  "base_frame": "base_link",
+  "odom_frame": "odom",
+  "map_frame": "map",
+  "save_on_exit": true,
+  "map_save_path": "/ros2_ws/glim_map"
+}

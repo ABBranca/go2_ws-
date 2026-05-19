@@ -1,3 +1,5 @@
+# octomap.launch.py
+
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -19,7 +21,7 @@ def generate_launch_description():
                 'latch': False,
             }],
             remappings=[
-                ('cloud_in', '/cloud_registered'),
+                ('cloud_in', '/glim_ros/cloud'),
             ]
         ),
     ])

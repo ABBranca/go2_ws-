@@ -1,3 +1,5 @@
+# bringup.launch.py
+
 import os
 
 from ament_index_python.packages import get_package_share_directory
@@ -21,47 +23,29 @@ def _static_tf(parent: str, child: str, x='0', y='0', z='0',
 
 
 def generate_launch_description():
-    hesai_dir = get_package_share_directory('hesai_ros_driver')
-    fast_lio_dir = get_package_share_directory('fast_lio')
     go2_nav_bridge_dir = get_package_share_directory('go2_nav_bridge')
 
-    # FAST-LIO2 hardcodes parent='camera_init', child='body' in laserMapping.cpp.
-    # Nav2 expects the canonical chain map → odom → base_link. Static identity
-    # bridges below reconcile both worlds without patching upstream FAST-LIO2:
+    # TF chain — GLIM-native, REP-105 compliant:
+    #   map →[GLIM, on loop closure]→ odom →[GLIM, continuous]→ base_link →[static]→ hesai_lidar
     #
-    #   map ─[id]─> odom ─[id]─> camera_init ─[FAST-LIO2 dyn]─> body ─[id]─> base_link
-    #
-    # Consequences:
-    # - map→odom is identity (no AMCL drift correction; acceptable for indoor
-    #   SLAM where FAST-LIO2 keeps drift bounded via loop closure on the local
-    #   submap). Replace with a proper map→odom corrector if multi-session
-    #   relocalisation becomes a requirement.
-    # - local_costmap.global_frame=odom resolves through the chain above.
-    # - octomap (frame_id=map) resolves cloud_registered via camera_init→map.
-    tf_map_odom = _static_tf('map', 'odom')
-    tf_odom_camera_init = _static_tf('odom', 'camera_init')
-    tf_body_base_link = _static_tf('body', 'base_link')
-
-    # base_link → hesai_lidar — official Unitree Go2 Expansion Dock extrinsics
-    # (T=[0.171, 0, 0.0908], R=I_3). Same values used as IMU→LiDAR extrinsic_T
-    # inside hesai_xt16.yaml, consistent with body ≡ base_link convention.
+    # GLIM publishes both dynamic transforms. Only sensor extrinsic is static here.
     tf_base_link_hesai = _static_tf('base_link', 'hesai_lidar',
                                     x='0.171', y='0.0', z='0.0908')
 
     hesai_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(hesai_dir, 'launch', 'start.py')
+            os.path.join(get_package_share_directory('hesai_ros_driver'), 'launch', 'start.py')
         ),
     )
 
-    fast_lio_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(fast_lio_dir, 'launch', 'mapping.launch.py')
-        ),
-        launch_arguments={
-            'config_file': 'hesai_xt16.yaml',
-            'rviz': 'false',
-        }.items(),
+    glim_node = Node(
+        package='glim_ros',
+        executable='glim_rosnode',
+        name='glim_ros',
+        parameters=[{
+            'config_path': os.path.join(go2_nav_bridge_dir, 'config', 'glim'),
+        }],
+        output='screen',
     )
 
     nav2_launch = IncludeLaunchDescription(
@@ -86,12 +70,9 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        tf_map_odom,
-        tf_odom_camera_init,
-        tf_body_base_link,
         tf_base_link_hesai,
         hesai_launch,
-        fast_lio_launch,
+        glim_node,
         nav2_launch,
         octomap_launch,
         bridge_node,

@@ -31,6 +31,13 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
   libapr1-dev \
   libaprutil1-dev
 
+# GLIM GPU-accelerated SLAM (headers for colcon build; CUDA provided by NVIDIA runtime)
+RUN curl -fsSL https://koide3.github.io/ppa/setup_ppa.sh | bash && \
+    apt-get update && apt-get install -y \
+      ros-humble-glim-ros \
+      libgtsam-points-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 # 2. Update rosdep (already initialized in base image)
 RUN rosdep update
 
@@ -83,6 +90,13 @@ RUN apt-get update && apt-get install -y \
   libapr1 \
   libaprutil1 \
   && rm -rf /var/lib/apt/lists/*
+
+# GLIM GPU-accelerated SLAM (shared libs for runtime; CUDA provided by NVIDIA runtime)
+RUN curl -fsSL https://koide3.github.io/ppa/setup_ppa.sh | bash && \
+    apt-get update && apt-get install -y \
+      ros-humble-glim-ros \
+      libgtsam-points-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /ros2_ws
 COPY --from=builder /ros2_ws/install /ros2_ws/install

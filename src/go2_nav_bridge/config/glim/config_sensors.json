@@ -1,0 +1,7 @@
+{
+  "sensor_type": "velodyne",
+  "velodyne_model": "VLP-16",
+  "lidar_topic": "/lidar_points",
+  "imu_topic": "/lidar_imu",
+  "T_lidar_imu": [0.171, 0.0, 0.0908, 1.0, 0.0, 0.0, 0.0]
+}
