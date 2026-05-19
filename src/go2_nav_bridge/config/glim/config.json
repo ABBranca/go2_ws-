@@ -1,11 +1,15 @@
 {
-  "enable_viewer": false,
-  "odometry_type": "gpu",
-  "sub_mapping_type": "gpu",
-  "global_mapping_type": "gpu",
-  "base_frame": "base_link",
-  "odom_frame": "odom",
-  "map_frame": "map",
-  "save_on_exit": true,
-  "map_save_path": "/ros2_ws/glim_map"
+  "global": {
+    "config_path": "",
+    "config_ros": "config_ros.json",
+    "config_sensors": "config_sensors.json",
+    "config_odometry": "config_odometry_gpu.json",
+    "config_sub_mapping": "config_sub_mapping_gpu.json",
+    "config_global_mapping": "config_global_mapping_gpu.json"
+  },
+  "global_mapping": {
+    "enable_viewer": false,
+    "save_on_exit": true,
+    "map_save_path": "/ros2_ws/glim_map"
+  }
 }

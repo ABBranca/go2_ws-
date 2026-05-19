@@ -1,7 +1,13 @@
 {
-  "sensor_type": "velodyne",
-  "velodyne_model": "VLP-16",
-  "lidar_topic": "/lidar_points",
-  "imu_topic": "/lidar_imu",
-  "T_lidar_imu": [0.171, 0.0, 0.0908, 1.0, 0.0, 0.0, 0.0]
+  "sensors": {
+    "imu_acc_noise": 0.0287,
+    "imu_gyro_noise": 8.2e-4,
+    "imu_int_noise": 0.001,
+    "imu_bias_noise": 2.8e-5,
+    "global_shutter_lidar": false,
+    "T_lidar_imu": [0.171, 0.0, 0.0908, 0.0, 0.0, 0.0, 1.0],
+    "intensity_field": "intensity",
+    "ring_field": "ring",
+    "autoconf_perpoint_times": true
+  }
 }
