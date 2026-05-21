@@ -27,17 +27,13 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
   ros-humble-octomap-ros \
   ros-humble-rosbag2-storage-mcap \
   ros-humble-diagnostic-updater \
-  libpcl-dev \
-  ros-humble-pcl-ros \
   libapr1-dev \
-  libaprutil1-dev
-
-# GLIM GPU-accelerated SLAM (headers for colcon build; CUDA provided by NVIDIA runtime)
-RUN curl -fsSL https://koide3.github.io/ppa/setup_ppa.sh | bash && \
-    apt-get update && apt-get install -y \
-      ros-humble-glim-ros \
-      libgtsam-points-dev \
-    && rm -rf /var/lib/apt/lists/*
+  libaprutil1-dev \
+  libomp-dev \
+  libpcl-dev \
+  ros-humble-eigen-stl-containers \
+  ros-humble-pcl-conversions \
+  ros-humble-pcl-ros
 
 # 2. Update rosdep (already initialized in base image)
 RUN rosdep update
@@ -87,17 +83,12 @@ RUN apt-get update && apt-get install -y \
   ros-humble-robot-localization \
   ros-humble-octomap-server \
   ros-humble-octomap-ros \
-  ros-humble-pcl-ros \
   libapr1 \
   libaprutil1 \
+  libomp5 \
+  libpcl-common1.12 \
+  ros-humble-pcl-ros \
   && rm -rf /var/lib/apt/lists/*
-
-# GLIM GPU-accelerated SLAM (shared libs for runtime; CUDA provided by NVIDIA runtime)
-RUN curl -fsSL https://koide3.github.io/ppa/setup_ppa.sh | bash && \
-    apt-get update && apt-get install -y \
-      ros-humble-glim-ros \
-      libgtsam-points-dev \
-    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /ros2_ws
 COPY --from=builder /ros2_ws/install /ros2_ws/install
