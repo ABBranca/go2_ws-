@@ -21,7 +21,7 @@ def generate_launch_description():
                 'latch': False,
             }],
             remappings=[
-                ('cloud_in', '/glim_ros/cloud'),
+                ('cloud_in', '/cloud_registered'),
             ]
         ),
     ])
