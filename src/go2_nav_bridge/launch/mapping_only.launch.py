@@ -5,11 +5,12 @@
 Drops Nav2 (no autonomous goal navigation) and keeps the SLAM/teleop chain:
 
     [Hesai driver] ──/lidar_points──┐
-                                    ├──> [GLIM] ──/glim_ros/cloud──> [octomap]
-    [Hesai IMU] ──/lidar_imu────────┘        └──/tf (map→odom, odom→base_link)
+                                    ├──> [FAST-LIO2] ──/cloud_registered──> [octomap]
+    [Hesai IMU] ──/lidar_imu────────┘       └──/tf (body→camera_init ~100 Hz)
+    [map_odom_broadcaster] ──/tf (map→odom 50 Hz)
     [Joystick → /cmd_vel] ──> [bridge_node] ──> SportModeCmd (manual teleop)
 
-Map saved on GLIM exit to /ros2_ws/glim_map (save_on_exit=true in config.json).
+REP-105 chain: map → odom → camera_init → body → base_link → hesai_lidar
 """
 import os
 
@@ -34,26 +35,41 @@ def _static_tf(parent: str, child: str, x='0', y='0', z='0',
 
 
 def generate_launch_description():
+    hesai_dir = get_package_share_directory('hesai_ros_driver')
+    fast_lio_dir = get_package_share_directory('fast_lio')
     go2_nav_bridge_dir = get_package_share_directory('go2_nav_bridge')
 
-    # GLIM publishes odom→base_link and map→odom natively. Only sensor extrinsic needed.
+    map_odom = Node(
+        package='go2_nav_bridge',
+        executable='map_odom_broadcaster',
+        name='map_odom_broadcaster',
+        output='screen',
+        parameters=[{
+            'publish_rate_hz': 50.0,
+            'map_frame': 'map',
+            'odom_frame': 'odom',
+        }],
+    )
+
+    tf_odom_camera_init = _static_tf('odom', 'camera_init')
+    tf_body_base_link = _static_tf('body', 'base_link')
     tf_base_link_hesai = _static_tf('base_link', 'hesai_lidar',
                                     x='0.171', y='0.0', z='0.0908')
 
     hesai_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(get_package_share_directory('hesai_ros_driver'), 'launch', 'start.py')
+            os.path.join(hesai_dir, 'launch', 'start.py')
         ),
     )
 
-    glim_node = Node(
-        package='glim_ros',
-        executable='glim_rosnode',
-        name='glim_ros',
-        parameters=[{
-            'config_path': os.path.join(go2_nav_bridge_dir, 'config', 'glim'),
-        }],
-        output='screen',
+    fast_lio_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(fast_lio_dir, 'launch', 'mapping.launch.py')
+        ),
+        launch_arguments={
+            'config_file': 'hesai_xt16.yaml',
+            'rviz': 'false',
+        }.items(),
     )
 
     octomap_launch = IncludeLaunchDescription(
@@ -72,9 +88,12 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        map_odom,
+        tf_odom_camera_init,
+        tf_body_base_link,
         tf_base_link_hesai,
         hesai_launch,
-        glim_node,
+        fast_lio_launch,
         octomap_launch,
         bridge_node,
     ])
