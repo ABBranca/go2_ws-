@@ -19,7 +19,7 @@
             lidar_type: 2                       # 2 = Velodyne-compatible (Hesai XT packet format is structurally equivalent)
             scan_line: 16                       # Hesai XT16: 16 channels
             scan_rate: 10                       # Mechanical rotation rate: 10 Hz (default XT16)
-            timestamp_unit: 0                   # 0 = seconds (Hesai relative time offset)
+            timestamp_unit: 0                   # 0 = seconds; handler subtracts t0 (PTP absolute→relative) and converts s→ms
             blind: 0.5                          # Minimum valid range [m] — filters out body self-returns
 
         mapping:

@@ -305,6 +305,9 @@ void Preprocess::velodyne_handler(const sensor_msgs::msg::PointCloud2::UniquePtr
   if (plsize == 0)
     return;
   pl_surf.reserve(plsize);
+  // Hesai PTP: timestamp is absolute Unix epoch [s]. Subtract first-point time
+  // to get per-point relative offset, then convert s→ms for FAST-LIO2 curvature.
+  double t0 = pl_orig.points[0].time;
 
   /*** These variables only works when no point timestamps given ***/
   double omega_l = 0.361 * SCAN_RATE;  // scan angular velocity
@@ -355,7 +358,7 @@ void Preprocess::velodyne_handler(const sensor_msgs::msg::PointCloud2::UniquePtr
       added_pt.y = pl_orig.points[i].y;
       added_pt.z = pl_orig.points[i].z;
       added_pt.intensity = pl_orig.points[i].intensity;
-      added_pt.curvature = pl_orig.points[i].time * time_unit_scale;  // units: ms
+      added_pt.curvature = (pl_orig.points[i].time - t0) * 1.0e3;  // relative offset [ms]
 
       if (!given_offset_time)
       {
@@ -426,8 +429,7 @@ void Preprocess::velodyne_handler(const sensor_msgs::msg::PointCloud2::UniquePtr
       added_pt.y = pl_orig.points[i].y;
       added_pt.z = pl_orig.points[i].z;
       added_pt.intensity = pl_orig.points[i].intensity;
-      added_pt.curvature =
-          pl_orig.points[i].time * time_unit_scale;  // curvature unit: ms // cout<<added_pt.curvature<<endl;
+      added_pt.curvature = (pl_orig.points[i].time - t0) * 1.0e3;  // relative offset [ms]
 
       if (!given_offset_time)
       {
