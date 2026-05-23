@@ -11,7 +11,7 @@
 
         common:
             lid_topic:  "/lidar_points"         # Published by hesai_ros_driver_2 (config.yaml: ros_send_point_cloud_topic)
-            imu_topic:  "/lidar_imu"          # Verified from Go2 rosbag metadata
+            imu_topic:  "/utlidar/imu"          # Go2 internal IMU — only IMU source, no IMU on XT-16 hardware
             time_sync_en: false
             time_offset_lidar_to_imu: 0.0
 
