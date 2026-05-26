@@ -24,11 +24,19 @@ Autonomous navigation for Unitree Go2 using Hesai XT16 LiDAR, FAST-LIO2 SLAM, an
 - **Config God Nodes:** `src/fast_lio_ros2/config/hesai_xt16.yaml` (Extrinsics/IMU), `nav2_params.yaml`.
 - **Deployment:** `docker/docker-compose.yml`.
 
+## 📚 LLM Wiki
+- **Vault:** `docs/wiki/pages/` (open as Obsidian vault)
+- **Schema:** `docs/wiki/SCHEMA.md` — LLM behavior instructions
+- **Sources:** drop docs in `docs/wiki/raw/`, then `ingest [filename]`
+- **Skill:** `/wiki` — ingest / query / lint operations
+- **Index:** `docs/wiki/pages/_index.md`
+
 ## 📏 Standards & Rules
 - **Safety:** Bridge must sanitize inputs (NaN/Inf) and include a velocity watchdog.
 - **DDS:** Use `cyclonedds.xml` with explicit `eth0` interface to prevent discovery failure.
 - **Subagents:** Parallel agents are read-only; apply all file writes in the main session.
 - **Navigation:** **Always use `graphify`** (read `graphify-out/GRAPH_REPORT.md` or `graphify-out/wiki/`) to identify architectural hubs and dependencies before making changes.
+- **Documentation**: Always ask the user whether to fetch info about the documentation using the NotebookLM-MCP or not. **NEVER** act without knowing the most recent documentation about the task.
 
 ## 🦴 Caveman Mode (Token Optimization)
 Caveman Mode is active/available. Use it to reduce token usage and increase speed.
