@@ -13,6 +13,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update && apt-get install -y \
   build-essential \
   cmake \
+  curl \
   git \
   python3-colcon-common-extensions \
   python3-rosdep \
@@ -22,14 +23,17 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
   ros-humble-nav2-mppi-controller \
   ros-humble-nav2-smac-planner \
   ros-humble-robot-localization \
-  ros-humble-octomap-server \
-  ros-humble-octomap-ros \
+  ros-humble-slam-toolbox \
+  ros-humble-pointcloud-to-laserscan \
   ros-humble-rosbag2-storage-mcap \
   ros-humble-diagnostic-updater \
-  libpcl-dev \
-  ros-humble-pcl-ros \
   libapr1-dev \
-  libaprutil1-dev
+  libaprutil1-dev \
+  libomp-dev \
+  libpcl-dev \
+  ros-humble-eigen-stl-containers \
+  ros-humble-pcl-conversions \
+  ros-humble-pcl-ros
 
 # 2. Update rosdep (already initialized in base image)
 RUN rosdep update
@@ -77,11 +81,13 @@ RUN apt-get update && apt-get install -y \
   ros-humble-nav2-mppi-controller \
   ros-humble-nav2-smac-planner \
   ros-humble-robot-localization \
-  ros-humble-octomap-server \
-  ros-humble-octomap-ros \
-  ros-humble-pcl-ros \
+  ros-humble-slam-toolbox \
+  ros-humble-pointcloud-to-laserscan \
   libapr1 \
   libaprutil1 \
+  libomp5 \
+  libpcl-common1.12 \
+  ros-humble-pcl-ros \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /ros2_ws

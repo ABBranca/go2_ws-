@@ -1,55 +1,79 @@
 {
-    "name": "Go2 Navigation Dev",
-    "build": {
-        "dockerfile": "Dockerfile"
-    },
-    "workspaceFolder": "/workspaces/go2_ws",
-    "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/go2_ws,type=bind,consistency=cached",
-    "customizations": {
-        "vscode": {
-            "extensions": [
-                "ms-iot.vscode-ros",
-                "ms-vscode.cpptools",
-                "llvm-vs-code-extensions.vscode-clangd",
-                "twxs.cmake",
-                "ms-python.python",
-                "ranch-hand-robotics.rde-ros-2",
-                "anthropic.claude-code"
-            ],
-            "settings": {
-                "ros.distro": "humble",
-                "clangd.arguments": [
-                    "--background-index",
-                    "--compile-commands-dir=${workspaceFolder}/build",
-                    "-j=4",
-                    "--clang-tidy",
-                    "--all-scopes-completion",
-                    "--completion-style=detailed",
-                    "--header-insertion=iwyu"
-                ],
-                "C_Cpp.intelliSenseEngine": "disabled",
-                "cmake.configureOnOpen": false,
-                "python.autoComplete.extraPaths": [
-                    "/opt/ros/humble/lib/python3.10/site-packages"
-                ],
-                "python.analysis.extraPaths": [
-                    "/opt/ros/humble/lib/python3.10/site-packages"
-                ]
-            }
-        }
-    },
-    "remoteUser": "ros",
-    "updateRemoteUserUID": true,
-    "runArgs": [
-        "--network=host",
-        "--ipc=host",
-        "--cap-add=NET_ADMIN",
-        "--cap-add=SYS_NICE"
-    ],
-    "containerEnv": {
-        "RMW_IMPLEMENTATION": "rmw_cyclonedds_cpp",
-        "CYCLONEDDS_URI": "file://${containerWorkspaceFolder}/.devcontainer/cyclonedds_dev.xml",
-        "ROS_DOMAIN_ID": "0"
-    },
-    "postCreateCommand": "bash .devcontainer/postCreateCommand.sh"
+  "name": "Go2 Navigation Dev",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "workspaceFolder": "/workspaces/go2_ws",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/go2_ws,type=bind,consistency=cached",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-iot.vscode-ros",
+        "ms-vscode.cpptools",
+        "llvm-vs-code-extensions.vscode-clangd",
+        "twxs.cmake",
+        "ms-python.python",
+        "ranch-hand-robotics.rde-ros-2",
+        "anthropic.claude-code"
+      ],
+      "settings": {
+        "ros.distro": "humble",
+        "clangd.arguments": [
+          "--background-index",
+          "--compile-commands-dir=${workspaceFolder}/build",
+          "-j=4",
+          "--clang-tidy",
+          "--all-scopes-completion",
+          "--completion-style=detailed",
+          "--header-insertion=iwyu"
+        ],
+        "C_Cpp.intelliSenseEngine": "disabled",
+        "cmake.configureOnOpen": false,
+        "python.autoComplete.extraPaths": [
+          "/opt/ros/humble/lib/python3.10/site-packages"
+        ],
+        "python.analysis.extraPaths": [
+          "/opt/ros/humble/lib/python3.10/site-packages"
+        ]
+      }
+    }
+  },
+  "remoteUser": "ros",
+  "updateRemoteUserUID": true,
+  "mounts": [
+    // Host LazyVim config -> container (single source of truth, host-editable).
+    "source=${localEnv:HOME}/.config/nvim,target=/home/ros/.config/nvim,type=bind,consistency=cached",
+    // Neovim data/state/cache: named volumes, NOT bound from host, so plugins /
+    // tree-sitter parsers / Mason binaries are (re)compiled inside the container
+    // and never clash with the host's arch/glibc. They persist across rebuilds.
+    "source=go2-nvim-data,target=/home/ros/.local/share/nvim,type=volume",
+    "source=go2-nvim-state,target=/home/ros/.local/state/nvim,type=volume",
+    "source=go2-nvim-cache,target=/home/ros/.cache/nvim,type=volume",
+    // colcon artifacts: named volumes che coprono il bind-mount del workspace, così gli
+    // artefatti del devcontainer NON collidono con quelli del distrobox (che monta la
+    // stessa cartella host sotto /run/host/... -> path CMake assoluti incompatibili).
+    // Persistono tra i rebuild; reset con `docker volume rm go2-build go2-install go2-log`.
+    "source=go2-build,target=/workspaces/go2_ws/build,type=volume",
+    "source=go2-install,target=/workspaces/go2_ws/install,type=volume",
+    "source=go2-log,target=/workspaces/go2_ws/log,type=volume",
+    // Host Claude Code config/auth -> container (bind, like the nvim config above).
+    // NB: must be ${localEnv:HOME} (not $HOME) — the devcontainer CLI does not expand
+    // shell vars; and type=bind (not volume) since the source is a host path.
+    "source=${localEnv:HOME}/.claude,target=/home/ros/.claude,type=bind,consistency=cached"
+  ],
+  "runArgs": [
+    "--network=host",
+    "--ipc=host",
+    "--cap-add=NET_ADMIN",
+    "--cap-add=SYS_NICE"
+  ],
+  "containerEnv": {
+    "RMW_IMPLEMENTATION": "rmw_cyclonedds_cpp",
+    "CYCLONEDDS_URI": "file://${containerWorkspaceFolder}/.devcontainer/cyclonedds_dev.xml",
+    "ROS_DOMAIN_ID": "0"
+  },
+  "features": {
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
+  },
+  "postCreateCommand": "bash .devcontainer/postCreateCommand.sh"
 }

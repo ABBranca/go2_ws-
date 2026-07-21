@@ -12,14 +12,18 @@
   <depend>rclcpp</depend>
   <depend>rcl_interfaces</depend>
   <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_geometry_msgs</depend>
   <depend>unitree_go</depend>
 
   <exec_depend>nav2_bringup</exec_depend>
   <exec_depend>nav2_mppi_controller</exec_depend>
   <exec_depend>nav2_smac_planner</exec_depend>
-  <exec_depend>octomap_server</exec_depend>
-  <exec_depend>octomap_ros</exec_depend>
-  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>slam_toolbox</exec_depend>
+  <exec_depend>pointcloud_to_laserscan</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

@@ -1,5 +1,45 @@
 # Session Diary
 
+## Session: 2026-05-19
+
+### Agenda
+- Migrazione SLAM da FAST-LIO2 a GLIM (koide3/glim) su branch `feature/glim-migration`
+- Obiettivo: piena conformità REP-105 (pubblicazione dinamica `map→odom` + loop closure)
+- Eliminazione dei 3 TF bridge statici necessari con FAST-LIO2 (`camera_init`, `body`)
+
+### Progress
+
+| file | action | reason |
+|---|---|---|
+| `src/fast_lio_ros2/` (73 file) | deleted | Sostituito da GLIM; no loop closure, no `map→odom` dinamico |
+| `src/go2_nav_bridge/config/glim/config_sensors.json` | created | Config sensori GLIM: Hesai XT16 + `/lidar_imu`, T=[0.171, 0, 0.0908, 1, 0, 0, 0] |
+| `src/go2_nav_bridge/config/glim/config.json` | created | Pipeline GLIM: GPU, headless (`enable_viewer: false`), frame REP-105 |
+| `src/go2_nav_bridge/launch/bringup.launch.py` | modified | GLIM Node sostituisce fast_lio_launch; rimossi tf_map_odom, tf_odom_camera_init, tf_body_base_link |
+| `src/go2_nav_bridge/launch/mapping_only.launch.py` | modified | GLIM Node sostituisce fast_lio_launch; rimossi tf_map_camera_init, tf_body_base_link; docstring aggiornato |
+| `src/go2_nav_bridge/launch/octomap.launch.py` | modified | Remapping `cloud_in` → `/glim_ros/cloud` (da `/cloud_registered` di FAST-LIO2) |
+| `docker/Dockerfile` | modified | Aggiunto blocco PPA Koide3 + `ros-humble-glim-ros` + `libgtsam-points-dev` in entrambi gli stage |
+| `docker/docker-compose.yml` | modified | Aggiunto `deploy.resources.reservations.devices` NVIDIA per entrambi i servizi |
+
+### Status of Key Components
+| Component | Status | Notes |
+|---|---|---|
+| FAST-LIO2 | Removed | Branch `main` conserva versione originale come rollback |
+| GLIM configs | Done | Verificare formato `T_lidar_imu` contro versione PPA installata sul robot |
+| Launch files | Done | TF chain semplificata: solo `base_link→hesai_lidar` statico |
+| Dockerfile | Done | Nomi pacchetti generici (`ros-humble-glim-ros`); sostituire con suffisso cuda verificato |
+| docker-compose | Done | GPU deploy configurato per production + dev service |
+| On-robot testing | Pending | Task 9 del piano: verifica TF tree, sensor Hz, OctoMap, GPU utilizzo |
+
+### Open Items / Next Steps
+- [ ] §0.3 Verificare topic IMU live: `ros2 topic hz /lidar_imu` (atteso ~200 Hz)
+- [ ] §0.4 Verificare nomi pacchetti PPA: `apt-cache search glim | grep humble` — aggiornare Dockerfile con suffisso cuda esatto
+- [ ] Verificare formato `T_lidar_imu` in `config_sensors.json` contro versione GLIM installata
+- [ ] §2.4 Verificare topic cloud GLIM: `ros2 topic list | grep -E 'cloud|accum'` — aggiornare `octomap.launch.py` se necessario
+- [ ] Eseguire sequenza verifica §6 completa sul robot (Task 9 del piano)
+- [ ] Sync con `./sync_to_dog.sh` e rebuild: `docker compose up --build -d`
+
+---
+
 ## Session: 2026-04-21
 
 ### Agenda

@@ -1,0 +1,42 @@
+[INFO] [launch]: All log files can be found below /home/ale/humble_dev/.ros/log/2026-06-03-20-46-21-943833-AleArchMobile-22486
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [ros2-1]: process started with pid [22488]
+[INFO] [odom_tf_broadcaster-2]: process started with pid [22490]
+[INFO] [pointcloud_to_laserscan_node-3]: process started with pid [22492]
+[INFO] [async_slam_toolbox_node-4]: process started with pid [22494]
+[async_slam_toolbox_node-4] [INFO] [1780512382.028811574] [slam_toolbox]: Node using stack size 40000000
+[odom_tf_broadcaster-2] [INFO] [1780512382.031862499] [odom_tf_broadcaster]: odom_tf_broadcaster: odom -> base_link from '/utlidar/robot_odom' (lock_z=false)
+[pointcloud_to_laserscan_node-3] [INFO] [1780512382.045169358] [pointcloud_to_laserscan]: Got a subscriber to laserscan, starting pointcloud subscriber
+[async_slam_toolbox_node-4] [INFO] [1780512382.051262974] [slam_toolbox]: Using solver plugin solver_plugins::CeresSolver
+[async_slam_toolbox_node-4] [INFO] [1780512382.051423403] [slam_toolbox]: CeresSolver: Using SCHUR_JACOBI preconditioner.
+[ros2-1] [INFO] [1780512382.137780237] [static_transform_publisher_VUUGhUekcUjmXKU5]: Spinning until stopped - publishing transform
+[ros2-1] translation: ('0.171000', '0.000000', '0.090800')
+[ros2-1] rotation: ('0.000000', '0.000000', '0.000000', '1.000000')
+[ros2-1] from 'base_link' to 'hesai_lidar'
+[pointcloud_to_laserscan_node-3] [WARN] [1780512389.986680110] [transform_listener_impl_562a6bff6620]: New publisher discovered on topic '/tf_static', offering incompatible QoS. No messages will be sent to it. Last incompatible policy: DURABILITY_QOS_POLICY
+[async_slam_toolbox_node-4] [WARN] [1780512389.986747977] [transform_listener_impl_5558b58d0270]: New publisher discovered on topic '/tf_static', offering incompatible QoS. No messages will be sent to it. Last incompatible policy: DURABILITY_QOS_POLICY
+[async_slam_toolbox_node-4] [INFO] [1780512390.201567294] [slam_toolbox]: Message Filter dropping message: frame 'base_link' at time 8568.704 for reason 'the timestamp on the message is earlier than all the data in the transform cache'
+[async_slam_toolbox_node-4] [INFO] [1780512392.751154130] [slam_toolbox]: Message Filter dropping message: frame 'base_link' at time 8571.304 for reason 'the timestamp on the message is earlier than all the data in the transform cache'
+[async_slam_toolbox_node-4] [INFO] [1780512395.351359772] [slam_toolbox]: Message Filter dropping message: frame 'base_link' at time 8573.904 for reason 'the timestamp on the message is earlier than all the data in the transform cache'
+[async_slam_toolbox_node-4] [INFO] [1780512397.850849502] [slam_toolbox]: Message Filter dropping message: frame 'base_link' at time 8576.404 for reason 'the timestamp on the message is earlier than all the data in the transform cache'
+[async_slam_toolbox_node-4] [INFO] [1780512400.450397262] [slam_toolbox]: Message Filter dropping message: frame 'base_link' at time 8579.004 for reason 'the timestamp on the message is earlier than all the data in the transform cache'
+[async_slam_toolbox_node-4] [INFO] [1780512403.050892149] [slam_toolbox]: Message Filter dropping message: frame 'base_link' at time 8581.604 for reason 'the timestamp on the message is earlier than all the data in the transform cache'
+[async_slam_toolbox_node-4] [INFO] [1780512405.650166182] [slam_toolbox]: Message Filter dropping message: frame 'base_link' at time 8584.203 for reason 'the timestamp on the message is earlier than all the data in the transform cache'
+[async_slam_toolbox_node-4] [INFO] [1780512408.149334469] [slam_toolbox]: Message Filter dropping message: frame 'base_link' at time 8586.701 for reason 'the timestamp on the message is earlier than all the data in the transform cache'
+[async_slam_toolbox_node-4] [INFO] [1780512410.748286225] [slam_toolbox]: Message Filter dropping message: frame 'base_link' at time 8589.303 for reason 'the timestamp on the message is earlier than all the data in the transform cache'
+[async_slam_toolbox_node-4] [INFO] [1780512413.349661348] [slam_toolbox]: Message Filter dropping message: frame 'base_link' at time 8591.903 for reason 'the timestamp on the message is earlier than all the data in the transform cache'
+[async_slam_toolbox_node-4] [INFO] [1780512415.950077135] [slam_toolbox]: Message Filter dropping message: frame 'base_link' at time 8594.503 for reason 'the timestamp on the message is earlier than all the data in the transform cache'
+[async_slam_toolbox_node-4] [INFO] [1780512418.543983502] [slam_toolbox]: Message Filter dropping message: frame 'base_link' at time 8597.100 for reason 'the timestamp on the message is earlier than all the data in the transform cache'
+[async_slam_toolbox_node-4] [INFO] [1780512421.151490316] [slam_toolbox]: Message Filter dropping message: frame 'base_link' at time 8599.701 for reason 'the timestamp on the message is earlier than all the data in the transform cache'
+[async_slam_toolbox_node-4] [INFO] [1780512423.654344479] [slam_toolbox]: Message Filter dropping message: frame 'base_link' at time 8602.205 for reason 'the timestamp on the message is earlier than all the data in the transform cache'
+[async_slam_toolbox_node-4] [INFO] [1780512426.249972477] [slam_toolbox]: Message Filter dropping message: frame 'base_link' at time 8604.803 for reason 'the timestamp on the message is earlier than all the data in the transform cache'
+[async_slam_toolbox_node-4] [INFO] [1780512428.745555912] [slam_toolbox]: Message Filter dropping message: frame 'base_link' at time 8607.302 for reason 'the timestamp on the message is earlier than all the data in the transform cache'
+[async_slam_toolbox_node-4] [INFO] [1780512431.252365299] [slam_toolbox]: Message Filter dropping message: frame 'base_link' at time 8609.803 for reason 'the timestamp on the message is earlier than all the data in the transform cache'
+[async_slam_toolbox_node-4] [INFO] [1780512433.843400731] [slam_toolbox]: Message Filter dropping message: frame 'base_link' at time 8612.399 for reason 'the timestamp on the message is earlier than all the data in the transform cache'
+[async_slam_toolbox_node-4] [INFO] [1780512436.448095138] [slam_toolbox]: Message Filter dropping message: frame 'base_link' at time 8615.003 for reason 'the timestamp on the message is earlier than all the data in the transform cache'
+[async_slam_toolbox_node-4] [INFO] [1780512438.946548414] [slam_toolbox]: Message Filter dropping message: frame 'base_link' at time 8617.503 for reason 'the timestamp on the message is earlier than all the data in the transform cache'
+[async_slam_toolbox_node-4] [INFO] [1780512441.547827497] [slam_toolbox]: Message Filter dropping message: frame 'base_link' at time 8620.100 for reason 'the timestamp on the message is earlier than all the data in the transform cache'
+[async_slam_toolbox_node-4] [INFO] [1780512444.147965475] [slam_toolbox]: Message Filter dropping message: frame 'base_link' at time 8622.701 for reason 'the timestamp on the message is earlier than all the data in the transform cache'
+[async_slam_toolbox_node-4] [INFO] [1780512446.748803899] [slam_toolbox]: Message Filter dropping message: frame 'base_link' at time 8625.302 for reason 'the timestamp on the message is earlier than all the data in the transform cache'
+[async_slam_toolbox_node-4] [INFO] [1780512449.348163577] [slam_toolbox]: Message Filter dropping message: frame 'base_link' at time 8627.903 for reason 'the timestamp on the message is earlier than all the data in the transform cache'
+[async_slam_toolbox_node-4] [INFO] [1780512451.948756093] [slam_toolbox]: Message Filter dropping message: frame 'base_link' at time 8630.502 for reason 'the timestamp on the message is earlier than all the data in the transform cache'

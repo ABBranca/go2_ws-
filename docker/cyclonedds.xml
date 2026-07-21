@@ -4,6 +4,10 @@
         <General>
             <Interfaces>
                 <NetworkInterface name="eth0" priority="default" multicast="default" />
+                <!-- USB WiFi dongle (rtl8812au) — advertises the 192.168.1.27 locator so a
+                     laptop on the WiFi subnet can discover the robot. required="false" keeps
+                     the stack starting when the dongle is absent (wired-only sessions). -->
+                <NetworkInterface name="wlan0" priority="default" multicast="default" presence_required="false" />
             </Interfaces>
             <AllowMulticast>true</AllowMulticast>
         </General>
@@ -11,15 +15,30 @@
             <Peers>
                 <Peer address="127.0.0.1"/>
                 <Peer address="192.168.123.18"/>
-                <!-- Laptop developer machine — sostituire con IP reale sulla 192.168.123.0/24 -->
+                <!-- Laptop developer machine over wired link (192.168.123.0/24). -->
                 <Peer address="192.168.123.222"/>
+                <!-- WiFi laptop is discovered via multicast SPDP (see wlan0 interface above):
+                     its leased 192.168.1.x address is carried in the announcement, so no static
+                     peer is hardcoded here (DHCP-proof). mDNS hostname peer is the fallback if
+                     the AP drops multicast — see docs/wiki/pages/configs/dds-config.md. -->
             </Peers>
+            <!-- Default è 9; il nostro stack (Nav2 + slam_toolbox + bridge + Hesai) supera questa soglia. -->
+            <MaxAutoParticipantIndex>32</MaxAutoParticipantIndex>
             <ParticipantIndex>auto</ParticipantIndex>
         </Discovery>
         <Internal>
-            <!-- Request 4 MiB socket receive buffer for high-bandwidth PointCloud2 traffic.
-                 Requires: sudo sysctl -w net.core.rmem_max=4194304 on the host. -->
+            <!-- Socket buffers for high-bandwidth PointCloud2 traffic.
+                 Requires on the host: net.core.rmem_max and net.core.wmem_max ≥ 4 MiB
+                 (enforced by docker/ros_entrypoint.sh preflight). Send buffer added
+                 for symmetry — the Hesai /lidar_points writer also needs
+                 headroom to avoid fragment drops under burst. -->
             <SocketReceiveBufferSize min="4 MiB"/>
+            <SocketSendBufferSize min="4 MiB"/>
+            <!-- Writer History Cache high-water mark: bound queued samples so a slow
+                 reader cannot stall the PointCloud2 writer. -->
+            <Watermarks>
+                <WhcHigh>4 MiB</WhcHigh>
+            </Watermarks>
         </Internal>
     </Domain>
 </CycloneDDS>

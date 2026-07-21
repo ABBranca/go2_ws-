@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- Developer laptop CycloneDDS config for the WIRED path (Ethernet to the Orin Dock).
+     Used inside the `humble_ws` distrobox (shares host net namespace).
+     Pair with docker/laptop_dds_env_wired.sh.
+
+     Wired uses STATIC IPs on 192.168.123.0/24 (laptop eno1 = .222, robot eth0 = .18),
+     so an explicit unicast peer to the robot is safe and robust — no dependence on
+     multicast forwarding. -->
+<CycloneDDS>
+    <Domain Id="any">
+        <General>
+            <Interfaces>
+                <!-- Laptop wired NIC on the robot subnet. -->
+                <NetworkInterface name="eno1" priority="default" multicast="default" />
+            </Interfaces>
+            <AllowMulticast>true</AllowMulticast>
+        </General>
+        <Discovery>
+            <Peers>
+                <Peer address="127.0.0.1"/>
+                <Peer address="192.168.123.18"/>   <!-- Orin Dock (robot stack) -->
+            </Peers>
+            <ParticipantIndex>auto</ParticipantIndex>
+        </Discovery>
+        <Internal>
+            <SocketReceiveBufferSize min="4 MiB"/>
+        </Internal>
+    </Domain>
+</CycloneDDS>

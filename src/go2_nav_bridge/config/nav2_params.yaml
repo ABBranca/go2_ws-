@@ -3,18 +3,15 @@
 #
 # This file configures Nav2 for autonomous navigation on the Unitree Go2
 # quadruped robot. Key principles:
-# - FAST-LIO2 publishes camera_init → body TF only. Static identity bridges
-#   in bringup.launch.py expand it into the canonical Nav2 chain:
-#       map ─[id]─> odom ─[id]─> camera_init ─[FAST-LIO2]─> body ─[id]─> base_link
-#   No separate map→odom corrector is run (no AMCL); /utlidar/robot_odom is
-#   consumed by the BT only as a Twist feedback topic, not as TF source.
+# - GLIM publishes the full REP-105 TF chain natively:
+#       map ─[GLIM, loop closure]─> odom ─[GLIM, continuous]─> base_link ─[static]─> hesai_lidar
+#   No AMCL or separate map→odom corrector needed; GLIM handles both transforms.
+#   /utlidar/robot_odom is consumed by the BT only as a Twist feedback topic.
 # - No AMCL or map_server; only dynamic obstacle avoidance
 # - SmacPlannerHybrid with Reeds-Shepp for non-holonomic planning
 # - MPPI controller for smooth trajectory execution
 # - Observation source: Hesai XT16 LiDAR on /lidar_points (PointCloud2)
 ############################################################################
-
-amcl: ~
 
 bt_navigator:
   ros__parameters:
@@ -142,11 +139,13 @@ global_costmap:
       plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
-        map_subscribe_transient_local: False
+        # slam_toolbox publishes /map with TRANSIENT_LOCAL (latched) durability;
+        # match it so the costmap receives the latched map on late join.
+        map_subscribe_transient_local: True
         enabled: True
         subscribe_to_updates: True
         transform_tolerance: 0.1
-        map_topic: /projected_map
+        map_topic: /map
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: True
