@@ -305,8 +305,9 @@ void Preprocess::velodyne_handler(const sensor_msgs::msg::PointCloud2::UniquePtr
   if (plsize == 0)
     return;
   pl_surf.reserve(plsize);
-  // Hesai PTP: timestamp is absolute Unix epoch [s]. Subtract first-point time
-  // to get per-point relative offset, then convert s→ms for FAST-LIO2 curvature.
+  // Hesai ROS2 driver already emits per-point 'time' as a RELATIVE offset [s]
+  // (point.ts − frame_start). t0 re-bases to the first point (≈0); handler then
+  // converts s→ms (×1e3) for FAST-LIO2 curvature.
   double t0 = pl_orig.points[0].time;
 
   /*** These variables only works when no point timestamps given ***/

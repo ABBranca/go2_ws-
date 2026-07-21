@@ -1,0 +1,32 @@
+[INFO] [1780514470.635173387] [tf2_echo]: Waiting for transform map ->  odom: Invalid frame ID "map" passed to canTransform argument target_frame - frame does not exist
+At time 8631.213843296
+- Translation: [1.895, 0.936, -0.279]
+- Rotation: in Quaternion (xyzw) [0.004, -0.011, -0.067, 0.998]
+- Rotation: in RPY (radian) [0.009, -0.021, -0.134]
+- Rotation: in RPY (degree) [0.505, -1.224, -7.661]
+- Matrix:
+  0.991  0.133 -0.022  1.895
+ -0.133  0.991 -0.006  0.936
+  0.021  0.009  1.000 -0.279
+  0.000  0.000  0.000  1.000
+At time 8631.213843296
+- Translation: [1.895, 0.936, -0.279]
+- Rotation: in Quaternion (xyzw) [0.004, -0.011, -0.067, 0.998]
+- Rotation: in RPY (radian) [0.009, -0.021, -0.134]
+- Rotation: in RPY (degree) [0.505, -1.224, -7.661]
+- Matrix:
+  0.991  0.133 -0.022  1.895
+ -0.133  0.991 -0.006  0.936
+  0.021  0.009  1.000 -0.279
+  0.000  0.000  0.000  1.000
+At time 8631.213843296
+- Translation: [1.895, 0.936, -0.279]
+- Rotation: in Quaternion (xyzw) [0.004, -0.011, -0.067, 0.998]
+- Rotation: in RPY (radian) [0.009, -0.021, -0.134]
+- Rotation: in RPY (degree) [0.505, -1.224, -7.661]
+- Matrix:
+  0.991  0.133 -0.022  1.895
+ -0.133  0.991 -0.006  0.936
+  0.021  0.009  1.000 -0.279
+  0.000  0.000  0.000  1.000
+[INFO] [1780514475.500089709] [rclcpp]: signal_handler(SIGINT/SIGTERM)

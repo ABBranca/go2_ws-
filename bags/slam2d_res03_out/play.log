@@ -1,0 +1,10 @@
+stdin is not a terminal device. Keyboard handling disabled.[INFO] [1780514572.563940650] [rosbag2_storage]: Opened database '/home/ale/Documents/Uni/Tesi/go2_ws/bags/slam2d_timefixed/slam2d_timefixed_0.db3' for READ_ONLY.
+[INFO] [1780514572.563995994] [rosbag2_player]: Set rate to 1
+[INFO] [1780514572.576108887] [rosbag2_player]: Adding keyboard callbacks.
+[INFO] [1780514572.576150516] [rosbag2_player]: Press SPACE for Pause/Resume
+[INFO] [1780514572.576156637] [rosbag2_player]: Press CURSOR_RIGHT for Play Next Message
+[INFO] [1780514572.576160845] [rosbag2_player]: Press CURSOR_UP for Increase Rate 10%
+[INFO] [1780514572.576164702] [rosbag2_player]: Press CURSOR_DOWN for Decrease Rate 10%
+[WARN] [1780514572.576368226] [rosbag2_player]: New subscription discovered on topic '/tf_static', requesting incompatible QoS. No messages will be sent to it. Last incompatible policy: DURABILITY_QOS_POLICY
+[INFO] [1780514572.576496958] [rosbag2_storage]: Opened database '/home/ale/Documents/Uni/Tesi/go2_ws/bags/slam2d_timefixed/slam2d_timefixed_0.db3' for READ_ONLY.
+[WARN] [1780514573.557457710] [rosbag2_player]: New subscription discovered on topic '/tf_static', requesting incompatible QoS. No messages will be sent to it. Last incompatible policy: DURABILITY_QOS_POLICY

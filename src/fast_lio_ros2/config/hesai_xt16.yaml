@@ -1,10 +1,10 @@
 /**:
     ros__parameters:
         feature_extract_enable: false
-        point_filter_num: 4
+        point_filter_num: 2                 # was 4 — keep more raw points (16-line scanner is already sparse)
         max_iteration: 3
-        filter_size_surf: 0.5
-        filter_size_map: 0.5
+        filter_size_surf: 0.2               # was 0.5 — denser surf features → stronger translational/vertical constraint
+        filter_size_map: 0.3                # was 0.5 — denser ikd-Tree map → more neighbours per query
         cube_side_length: 1000.0
         runtime_pos_log_enable: false
         map_file_path: "./hesai_xt16_map.pcd"
@@ -20,7 +20,7 @@
             scan_line: 16                       # Hesai XT16: 16 channels
             scan_rate: 10                       # Mechanical rotation rate: 10 Hz (default XT16)
             timestamp_unit: 0                   # 0 = seconds; handler subtracts t0 (PTP absolute→relative) and converts s→ms
-            blind: 0.5                          # Minimum valid range [m] — filters out body self-returns
+            blind: 0.3                          # was 0.5 — admit nearer returns for more features; still discards Go2 body self-returns
 
         mapping:
             # --- IMU noise parameters (Measured via Allan Variance on 2026-04-09) ---

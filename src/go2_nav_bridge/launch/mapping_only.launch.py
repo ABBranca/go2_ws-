@@ -6,11 +6,16 @@ Drops Nav2 (no autonomous goal navigation) and keeps the SLAM/teleop chain:
 
     [Hesai driver] ──/lidar_points──┐
                                     ├──> [FAST-LIO2] ──/cloud_registered──> [octomap]
-    [Hesai IMU] ──/lidar_imu────────┘       └──/tf (body→camera_init ~100 Hz)
+    [Hesai IMU] ──/utlidar/imu──────┘       └──/tf (odom→base_link ~100 Hz)
     [map_odom_broadcaster] ──/tf (map→odom 50 Hz)
     [Joystick → /cmd_vel] ──> [bridge_node] ──> SportModeCmd (manual teleop)
 
-REP-105 chain: map → odom → camera_init → body → base_link → hesai_lidar
+REP-105 chain: map → odom → base_link → hesai_lidar
+
+NOTE: FAST-LIO2 hardcodes world_frame="camera_init" and body_frame="body"
+in laserMapping.cpp (no YAML override exists). Two static identity bridges
+(odom→camera_init, body→base_link) reconcile those names with REP-105.
+Mirrors bringup.launch.py. Do NOT remove them.
 """
 import os
 
@@ -51,6 +56,8 @@ def generate_launch_description():
         }],
     )
 
+    # FAST-LIO2 hardcodes world_frame="camera_init", body_frame="body".
+    # These static transforms bridge to the REP-105 chain (odom, base_link).
     tf_odom_camera_init = _static_tf('odom', 'camera_init')
     tf_body_base_link = _static_tf('body', 'base_link')
     tf_base_link_hesai = _static_tf('base_link', 'hesai_lidar',

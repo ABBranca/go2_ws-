@@ -45,7 +45,7 @@ namespace velodyne_ros {
 struct EIGEN_ALIGN16 Point {
   PCL_ADD_POINT4D;
   float intensity;
-  double time;  // Hesai PTP: absolute Unix epoch [s]; subtracted to relative offset in handler
+  float time;  // Hesai ROS2 driver: per-point RELATIVE offset [s] = (point.ts − frame_start), FLOAT32
   uint16_t ring;
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
@@ -53,7 +53,7 @@ struct EIGEN_ALIGN16 Point {
 POINT_CLOUD_REGISTER_POINT_STRUCT(
     velodyne_ros::Point,
     (float, x, x)(float, y, y)(float, z, z)(float, intensity, intensity)(
-        double, time, timestamp)(uint16_t, ring, ring))
+        float, time, time)(uint16_t, ring, ring))
 
 namespace ouster_ros {
 struct EIGEN_ALIGN16 Point {

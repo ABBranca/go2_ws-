@@ -16,9 +16,17 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import ExecuteProcess, IncludeLaunchDescription
+from launch.actions import ExecuteProcess, IncludeLaunchDescription, TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
+
+# Startup-race gate (see NOTE in generate_launch_description). Nav2's Costmap2D
+# blocks lifecycle activation until the full TF tree is present, and the global
+# costmap static_layer needs octomap's /projected_map. Coarse staged delays
+# guarantee the producer chain (FAST-LIO2 → octomap) is publishing before the
+# consumer (Nav2 autostart) tries to activate.
+OCTOMAP_START_DELAY_S = 4.0   # after FAST-LIO2 emits /cloud_registered (~1-2 s)
+NAV2_START_DELAY_S = 8.0      # after TF tree + /projected_map are live
 
 
 def _static_tf(parent: str, child: str, x='0', y='0', z='0',
@@ -99,6 +107,21 @@ def generate_launch_description():
         respawn_delay=1.0,
     )
 
+    # Staged bringup to defuse the TF/costmap startup race (NotebookLM: "Costmap2D
+    # will block activation until a full TF tree is available"). Producers start
+    # immediately; consumers are delayed.
+    #   t=0   : TF (map→odom + static bridges), Hesai driver, FAST-LIO2, teleop bridge
+    #   t=4 s : octomap (consumes /cloud_registered → publishes /projected_map)
+    #   t=8 s : Nav2 (consumes TF tree + /projected_map; autostart safe by now)
+    octomap_delayed = TimerAction(
+        period=OCTOMAP_START_DELAY_S,
+        actions=[octomap_launch],
+    )
+    nav2_delayed = TimerAction(
+        period=NAV2_START_DELAY_S,
+        actions=[nav2_launch],
+    )
+
     return LaunchDescription([
         map_odom,
         tf_odom_camera_init,
@@ -106,7 +129,7 @@ def generate_launch_description():
         tf_base_link_hesai,
         hesai_launch,
         fast_lio_launch,
-        nav2_launch,
-        octomap_launch,
         bridge_node,
+        octomap_delayed,
+        nav2_delayed,
     ])

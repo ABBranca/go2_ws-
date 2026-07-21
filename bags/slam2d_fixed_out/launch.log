@@ -1,0 +1,19 @@
+[INFO] [launch]: All log files can be found below /home/ale/humble_dev/.ros/log/2026-06-03-20-51-31-341099-AleArchMobile-25042
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [ros2-1]: process started with pid [25044]
+[INFO] [odom_tf_broadcaster-2]: process started with pid [25046]
+[INFO] [pointcloud_to_laserscan_node-3]: process started with pid [25048]
+[INFO] [async_slam_toolbox_node-4]: process started with pid [25050]
+[odom_tf_broadcaster-2] [INFO] [1780512691.400838605] [odom_tf_broadcaster]: odom_tf_broadcaster: odom -> base_link from '/utlidar/robot_odom' (lock_z=false)
+[pointcloud_to_laserscan_node-3] [INFO] [1780512691.404709520] [pointcloud_to_laserscan]: Got a subscriber to laserscan, starting pointcloud subscriber
+[async_slam_toolbox_node-4] [INFO] [1780512691.405033764] [slam_toolbox]: Node using stack size 40000000
+[async_slam_toolbox_node-4] [INFO] [1780512691.427337973] [slam_toolbox]: Using solver plugin solver_plugins::CeresSolver
+[async_slam_toolbox_node-4] [INFO] [1780512691.427663869] [slam_toolbox]: CeresSolver: Using SCHUR_JACOBI preconditioner.
+[ros2-1] [INFO] [1780512691.529092214] [static_transform_publisher_NhwzW2mc1200AybZ]: Spinning until stopped - publishing transform
+[ros2-1] translation: ('0.171000', '0.000000', '0.090800')
+[ros2-1] rotation: ('0.000000', '0.000000', '0.000000', '1.000000')
+[ros2-1] from 'base_link' to 'hesai_lidar'
+[pointcloud_to_laserscan_node-3] [WARN] [1780512699.677103973] [transform_listener_impl_5563383db460]: New publisher discovered on topic '/tf_static', offering incompatible QoS. No messages will be sent to it. Last incompatible policy: DURABILITY_QOS_POLICY
+[async_slam_toolbox_node-4] [WARN] [1780512699.677106067] [transform_listener_impl_555823d835d0]: New publisher discovered on topic '/tf_static', offering incompatible QoS. No messages will be sent to it. Last incompatible policy: DURABILITY_QOS_POLICY
+[async_slam_toolbox_node-4] [WARN] [1780512699.847677884] [slam_toolbox]: minimum laser range setting (0.3 m) exceeds the capabilities of the used Lidar (0.3 m)
+[async_slam_toolbox_node-4] Registering sensor: [Custom Described Lidar]

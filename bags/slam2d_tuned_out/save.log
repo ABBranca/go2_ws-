@@ -1,0 +1,16 @@
+[INFO] [1780513323.356231924] [map_saver]: 
+	map_saver lifecycle node launched. 
+	Waiting on external lifecycle transitions to activate
+	See https://design.ros2.org/articles/node_lifecycle.html for more information.
+[INFO] [1780513323.356383880] [map_saver]: Creating
+[INFO] [1780513323.356859344] [map_saver]: Configuring
+[INFO] [1780513323.358216605] [map_saver]: Saving map from 'map' topic to '/home/ale/Documents/Uni/Tesi/go2_ws/bags/slam2d_tuned_out/map' file
+[WARN] [1780513323.358242935] [map_saver]: Free threshold unspecified. Setting it to default value: 0.250000
+[WARN] [1780513323.358252002] [map_saver]: Occupied threshold unspecified. Setting it to default value: 0.650000
+[WARN] [1780513324.359541223] [map_io]: Image format unspecified. Setting it to: pgm
+[INFO] [1780513324.359589735] [map_io]: Received a 125 X 324 map @ 0.05 m/pix
+[INFO] [1780513324.384465651] [map_io]: Writing map occupancy data to /home/ale/Documents/Uni/Tesi/go2_ws/bags/slam2d_tuned_out/map.pgm
+[INFO] [1780513324.384842149] [map_io]: Writing map metadata to /home/ale/Documents/Uni/Tesi/go2_ws/bags/slam2d_tuned_out/map.yaml
+[INFO] [1780513324.384912782] [map_io]: Map saved
+[INFO] [1780513324.384918032] [map_saver]: Map saved successfully
+[INFO] [1780513324.385730239] [map_saver]: Destroying

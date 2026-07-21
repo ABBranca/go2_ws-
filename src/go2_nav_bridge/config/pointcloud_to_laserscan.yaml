@@ -1,0 +1,35 @@
+pointcloud_to_laserscan:
+  ros__parameters:
+    # Flatten the Hesai XT16 cloud into a 2D scan in an IMU-levelled frame.
+    # `base_stabilized` (published by odom_tf_broadcaster with tilt_source=imu) is
+    # base_link with the gait-induced roll/pitch removed via the gravity-referenced
+    # IMU, yaw preserved. Projecting here makes the height band gate on the TRUE
+    # gravity-vertical height → gait-invariant slab (sharper walls, less floor/ceiling
+    # bleed than projecting in the tilting base_link).
+    # HISTORY: an earlier `base_stabilized` driven by the LEG-ODOM attitude REGRESSED the
+    # map (map→odom yaw 5.8°→12.9°): leg-odom attitude is too noisy/biased (≈-2.6° roll
+    # bias while standing level). The IMU-driven frame is the fix (see odom_tf_broadcaster).
+    # To fall back to the un-levelled slab, set this to `base_link` and drop tilt_source=imu.
+    target_frame: base_stabilized
+    transform_tolerance: 0.05
+
+    # Height band (metres, in target_frame). base_link sits ~0.30 m above the
+    # floor; the XT16 is +0.0908 m above base_link. This slab keeps the rich
+    # horizontal returns (walls, tables, chairs, boxes) and rejects the floor
+    # (≈ -0.30 m) and the Go2 body.
+    # Tightened around the lidar plane (~+0.09 m in base_link): the wider 0.10–0.80
+    # band let gait pitch/roll bleed FLOOR and CEILING returns into the scan (the
+    # node keeps the MIN range per azimuth → spurious short ranges → ragged walls).
+    # A slab hugging the sensor plane rejects most gait-induced floor strikes while
+    # retaining wall returns when the body is roughly level.
+    min_height: 0.00
+    max_height: 0.45
+
+    angle_min: -3.14159         # -180°
+    angle_max:  3.14159         #  180°
+    angle_increment: 0.0058     # ~0.33° (XT16 horizontal resolution @ 10 Hz)
+    scan_time: 0.1              # 10 Hz
+    range_min: 0.30             # discard Go2 body self-returns (matches FAST-LIO blind)
+    range_max: 20.0
+    use_inf: true
+    inf_epsilon: 1.0

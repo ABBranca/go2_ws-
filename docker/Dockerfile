@@ -25,6 +25,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
   ros-humble-robot-localization \
   ros-humble-octomap-server \
   ros-humble-octomap-ros \
+  ros-humble-slam-toolbox \
+  ros-humble-pointcloud-to-laserscan \
   ros-humble-rosbag2-storage-mcap \
   ros-humble-diagnostic-updater \
   libapr1-dev \
@@ -83,6 +85,8 @@ RUN apt-get update && apt-get install -y \
   ros-humble-robot-localization \
   ros-humble-octomap-server \
   ros-humble-octomap-ros \
+  ros-humble-slam-toolbox \
+  ros-humble-pointcloud-to-laserscan \
   libapr1 \
   libaprutil1 \
   libomp5 \
