@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y \
   build-essential \
   cmake \
   git \
+  fish \
   clangd \
   clang-format \
   python3-colcon-common-extensions \
@@ -67,6 +68,12 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
   && apt-get install -y --no-install-recommends nodejs \
   && rm -rf /var/lib/apt/lists/*
 
+# Install Lazygit
+RUN LAZYGIT_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | grep -Po '"tag_name": "v\K[^"]*') \
+  && curl -Lo lazygit.tar.gz "https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_${LAZYGIT_VERSION}_Linux_x86_64.tar.gz" \
+  && tar xf lazygit.tar.gz lazygit \
+  && install lazygit /usr/local/bin \
+  && rm lazygit.tar.gz lazygit
 # --- Neovim (recent release; Ubuntu 22.04 apt ships 0.6, too old for LazyVim >= 0.10) ---
 # NB: verificare l'asset name del release: dalla 0.10.4 e' `nvim-linux-x86_64.tar.gz`
 #     (prima era `nvim-linux64.tar.gz`).

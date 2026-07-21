@@ -73,7 +73,8 @@
     "ROS_DOMAIN_ID": "0"
   },
   "features": {
-    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
   },
   "postCreateCommand": "bash .devcontainer/postCreateCommand.sh"
 }
