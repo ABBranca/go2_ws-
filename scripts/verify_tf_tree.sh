@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# verify_tf_tree.sh — pre-flight diagnostic for the Go2 mapping pipeline.
+# verify_tf_tree.sh — pre-flight diagnostic for the Go2 2D mapping/nav pipeline.
 #
 # Run inside the running container (after sourcing the workspace) while
-# mapping_only.launch.py / bringup.launch.py is up. Verifies:
-#   1. TF chain resolves end-to-end:
-#        mapping_only:  map → camera_init → body → base_link → hesai_lidar
-#        bringup:       map → odom → camera_init → body → base_link → hesai_lidar
+# bringup.launch.py / mapping_2d.launch.py is up. Verifies:
+#   1. TF chain resolves end-to-end (REP-105, fully 2D):
+#        map →(slam_toolbox)→ odom →(odom_tf_broadcaster)→ base_link →(static)→ hesai_lidar
+#      plus base_link → base_stabilized (IMU-levelled frame the scan is projected into).
 #   2. Required topics are flowing at expected frequencies.
-#   3. /lidar_imu (Hesai XT-16 IMU, FAST-LIO2 input) and /lidar_points alive.
+#   3. /scan (pointcloud_to_laserscan) and /map (slam_toolbox) are alive.
 #
 # Exits 0 only if all checks pass.
 
@@ -40,13 +40,13 @@ check_tf() {
         fail "TF $parent → $child NOT resolvable"
     fi
 }
-check_tf map           camera_init
-check_tf camera_init   body
-check_tf body          base_link
-check_tf base_link     hesai_lidar
-check_tf map           base_link    # full chain, the one octomap uses
+check_tf map           odom              # published by slam_toolbox
+check_tf odom          base_link         # published by odom_tf_broadcaster (leg odom)
+check_tf base_link     base_stabilized   # IMU-levelled scan frame
+check_tf base_link     hesai_lidar       # static extrinsic
+check_tf map           base_link         # full chain, the one the costmap uses
 
-# 2. Topic rates. Expected: lidar 10 Hz, Hesai IMU ~200 Hz, FAST-LIO2 odom 10 Hz.
+# 2. High-rate topic checks. Expected: lidar ~10 Hz, scan ~10 Hz, Go2 IMU ~200 Hz.
 check_hz() {
     local topic="$1" min="$2"
     local rate
@@ -61,11 +61,22 @@ check_hz() {
         fail "$topic @ ${rate} Hz (< ${min})"
 }
 check_hz /lidar_points       8
-check_hz /lidar_imu          100   # Hesai XT-16 built-in IMU → FAST-LIO2 imu_topic
-check_hz /Odometry           8
-check_hz /cloud_registered   8
+check_hz /scan               5     # pointcloud_to_laserscan output
+check_hz /utlidar/imu        100   # Go2 body IMU → odom_tf_broadcaster tilt source
 
-# 3. Frame_id sanity on /lidar_points (must be hesai_lidar).
+# 3. Presence checks for variable-rate / latched topics (one message within timeout).
+check_present() {
+    local topic="$1"
+    if timeout 8 ros2 topic echo --once "$topic" >/dev/null 2>&1; then
+        ok "$topic — message received"
+    else
+        fail "$topic — no message within 8 s"
+    fi
+}
+check_present /utlidar/robot_odom   # Go2 leg odometry (odom_tf_broadcaster input)
+check_present /map                  # slam_toolbox occupancy grid (latched, low rate)
+
+# 4. Frame_id sanity on /lidar_points (must be hesai_lidar).
 fid=$(timeout 3 ros2 topic echo --once --field header.frame_id /lidar_points 2>/dev/null)
 if [[ "$fid" == "hesai_lidar" ]]; then
     ok "/lidar_points frame_id = hesai_lidar"
@@ -74,7 +85,7 @@ else
 fi
 
 if (( FAILED == 0 )); then
-    printf '\n\033[32mAll checks passed — pipeline ready for mapping.\033[0m\n'
+    printf '\n\033[32mAll checks passed — 2D pipeline ready.\033[0m\n'
     exit 0
 else
     printf '\n\033[31mPipeline NOT ready — fix the issues above before running.\033[0m\n'

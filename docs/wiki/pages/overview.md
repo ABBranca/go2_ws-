@@ -1,7 +1,7 @@
 ---
 type: analysis
 tags: [architecture, overview]
-updated: 2026-05-26
+updated: 2026-07-21
 ---
 
 # System Overview
@@ -9,22 +9,25 @@ updated: 2026-05-26
 ## Pipeline
 
 ```
-Hesai XT-16 (10 Hz)    /lidar_points
+Hesai XT-16 (10 Hz)       /lidar_points
        │
        ▼
-  FAST-LIO2            /Odometry, /cloud_registered, map→odom TF
+ pointcloud_to_laserscan  /scan
        │
        ▼
-    Nav2               /cmd_vel
+  slam_toolbox            /map, map→odom TF
        │
        ▼
- go2_nav_bridge        SportModeCmd (Unitree SDK)
+    Nav2                  /cmd_vel
+       │
+       ▼
+ go2_nav_bridge           SportModeCmd (Unitree SDK)
        │
        ▼
    Go2 MCU (192.168.123.161)
 ```
 
-IMU (`/utlidar/imu`, ~253 Hz) feeds directly into [[fast-lio2]] for motion undistortion and state propagation.
+IMU (`/utlidar/imu`, ~253 Hz) feeds [[imu-tilt-compensation]] in `odom_tf_broadcaster` to level the gait-induced tilt before the cloud is projected into a scan. Go2 leg odometry (`/utlidar/robot_odom`) supplies the `odom→base_link` transform. A horizontal XT16 cannot observe Z, so 3D LiDAR-inertial SLAM was retired — see [[z-observability]].
 
 ---
 
@@ -33,9 +36,9 @@ IMU (`/utlidar/imu`, ~253 Hz) feeds directly into [[fast-lio2]] for motion undis
 | Component | Role | Package |
 |-----------|------|---------|
 | [[hesai-xt16]] | LiDAR sensor | `hesai_ros_driver_2` |
-| [[fast-lio2]] | LiDAR-inertial SLAM | `fast_lio_ros2` |
+| [[slam-toolbox-2d]] | 2D SLAM (scan → map, map→odom) | `slam_toolbox` (apt) |
 | [[nav2]] | Path planning + control | `nav2_bringup` |
-| [[go2-nav-bridge]] | Velocity → SportAPI | `go2_nav_bridge` |
+| [[go2-nav-bridge]] | Velocity → SportAPI + odom/scan TF | `go2_nav_bridge` |
 
 ---
 
@@ -43,7 +46,7 @@ IMU (`/utlidar/imu`, ~253 Hz) feeds directly into [[fast-lio2]] for motion undis
 
 `map` → `odom` → `base_link` → `hesai_lidar`
 
-FAST-LIO2 publishes `map→odom`. Static transform `base_link→hesai_lidar`: T = [0.171, 0, 0.0908] m, R = I₃. See [[tf-tree]] and [[extrinsics]].
+slam_toolbox publishes `map→odom`; `odom_tf_broadcaster` publishes `odom→base_link` from leg odometry. Static transform `base_link→hesai_lidar`: T = [0.171, 0, 0.0908] m, R = I₃. See [[tf-tree]] and [[extrinsics]].
 
 ---
 
@@ -57,10 +60,11 @@ FAST-LIO2 publishes `map→odom`. Static transform `base_link→hesai_lidar`: T 
 
 | Topic | Type | Publisher | Subscriber |
 |-------|------|-----------|------------|
-| `/lidar_points` | `PointCloud2` | hesai driver | FAST-LIO2 |
-| `/utlidar/imu` | `Imu` | Go2 firmware | FAST-LIO2 |
-| `/Odometry` | `Odometry` | FAST-LIO2 | Nav2 |
-| `/cloud_registered` | `PointCloud2` | FAST-LIO2 | Nav2 (OctoMap) |
+| `/lidar_points` | `PointCloud2` | hesai driver | pointcloud_to_laserscan, Nav2 obstacle layer |
+| `/scan` | `LaserScan` | pointcloud_to_laserscan | slam_toolbox |
+| `/utlidar/imu` | `Imu` | Go2 firmware | odom_tf_broadcaster (tilt leveling) |
+| `/utlidar/robot_odom` | `Odometry` | Go2 firmware | odom_tf_broadcaster |
+| `/map` | `OccupancyGrid` | slam_toolbox | Nav2 (static layer) |
 | `/cmd_vel` | `Twist` | Nav2 | go2_nav_bridge |
 
 ---

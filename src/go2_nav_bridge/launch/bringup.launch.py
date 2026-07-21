@@ -1,16 +1,23 @@
-# bringup.launch.py
+# bringup.launch.py — production full-autonomy stack (2D SLAM + Nav2).
 #
-# REP-105 frame chain:
-#   map ─[map_odom_broadcaster, dynamic identity 50 Hz]─> odom
-#       ─[static identity]─> camera_init
-#       ─[FAST-LIO2 laserMapping ~100 Hz]─> body
-#       ─[static identity]─> base_link
-#       ─[static extrinsic T=(0.171, 0, 0.0908)]─> hesai_lidar
+# A horizontally-mounted Hesai XT16 (16 beams, ±15° vertical FOV) cannot observe
+# vertical translation, so 3D LiDAR-inertial estimators (FAST-LIO2) run away in Z.
+# Nav2 is 2D and the operating floor is planar, so we collapse the problem to a
+# plane: slam_toolbox builds the map from a projected laser scan, and Z-free
+# planar odometry is sourced from the Go2 legs.
 #
-# Static identity bridges (odom->camera_init, body->base_link) reconcile
-# FAST-LIO2's hardcoded frame names with REP-105 without patching upstream
-# C++ source. Replace map_odom_broadcaster's identity with a real loop-closure
-# corrector when relocalization is added — no other launch changes required.
+#   [Hesai driver] ──/lidar_points──> [pointcloud_to_laserscan] ──/scan──┐
+#                                                                        ├─> [slam_toolbox] ──/map, TF map→odom
+#   [Go2 leg odom] ──/utlidar/robot_odom──> [odom_tf_broadcaster] ──TF odom→base_link
+#   [Nav2] ──consumes /map + TF tree──> path planning / control ──/cmd_vel──┐
+#   [Joystick → /cmd_vel] ───────────────────────────────────────────────> [bridge_node] ──> SportModeCmd
+#
+# REP-105 frame chain (fully 2D — no camera_init/body, no FAST-LIO, no octomap):
+#   map ─[slam_toolbox]→ odom ─[odom_tf_broadcaster]→ base_link ─[static extrinsic]→ hesai_lidar
+#
+# slam_toolbox owns map→odom; do NOT also run map_odom_broadcaster here (two
+# publishers on the same TF edge diverge the tree). Nav2's global costmap
+# static_layer subscribes to slam_toolbox's /map (see nav2_params.yaml).
 
 import os
 
@@ -20,13 +27,11 @@ from launch.actions import ExecuteProcess, IncludeLaunchDescription, TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 
-# Startup-race gate (see NOTE in generate_launch_description). Nav2's Costmap2D
-# blocks lifecycle activation until the full TF tree is present, and the global
-# costmap static_layer needs octomap's /projected_map. Coarse staged delays
-# guarantee the producer chain (FAST-LIO2 → octomap) is publishing before the
-# consumer (Nav2 autostart) tries to activate.
-OCTOMAP_START_DELAY_S = 4.0   # after FAST-LIO2 emits /cloud_registered (~1-2 s)
-NAV2_START_DELAY_S = 8.0      # after TF tree + /projected_map are live
+# Startup-race gate. Nav2's Costmap2D blocks lifecycle activation until the full
+# TF tree is present, and the global costmap static_layer needs slam_toolbox's
+# /map. A coarse staged delay guarantees the producer chain (Hesai → pc2scan →
+# slam_toolbox) is publishing map→odom + /map before Nav2 autostart activates.
+NAV2_START_DELAY_S = 8.0
 
 
 def _static_tf(parent: str, child: str, x='0', y='0', z='0',
@@ -44,58 +49,67 @@ def _static_tf(parent: str, child: str, x='0', y='0', z='0',
 
 def generate_launch_description():
     hesai_dir = get_package_share_directory('hesai_ros_driver')
-    fast_lio_dir = get_package_share_directory('fast_lio')
-    go2_nav_bridge_dir = get_package_share_directory('go2_nav_bridge')
-
-    # Dynamic map -> odom (identity now; upgradeable to loop closure).
-    map_odom = Node(
-        package='go2_nav_bridge',
-        executable='map_odom_broadcaster',
-        name='map_odom_broadcaster',
-        output='screen',
-        parameters=[{
-            'publish_rate_hz': 50.0,
-            'map_frame': 'map',
-            'odom_frame': 'odom',
-        }],
-    )
-
-    # Static identity bridges to reconcile FAST-LIO2 hardcoded frames with REP-105.
-    tf_odom_camera_init = _static_tf('odom', 'camera_init')
-    tf_body_base_link = _static_tf('body', 'base_link')
+    pkg_dir = get_package_share_directory('go2_nav_bridge')
 
     # base_link -> hesai_lidar — official Unitree Go2 Expansion Dock extrinsic
-    # (T=[0.171, 0, 0.0908], R=I3). Mirrors FAST-LIO2 IMU->LiDAR extrinsic_T
-    # in hesai_xt16.yaml (body ≡ base_link convention).
+    # (T=[0.171, 0, 0.0908], R=I3). base_link ≡ body convention.
     tf_base_link_hesai = _static_tf('base_link', 'hesai_lidar',
                                     x='0.171', y='0.0', z='0.0908')
 
+    # Hesai XT16 → /lidar_points (frame hesai_lidar)
     hesai_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(hesai_dir, 'launch', 'start.py')
         ),
     )
 
-    fast_lio_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(fast_lio_dir, 'launch', 'mapping.launch.py')
-        ),
-        launch_arguments={
-            'config_file': 'hesai_xt16.yaml',
-            'rviz': 'false',
-        }.items(),
+    # Go2 onboard leg odometry → odom→base_link (continuous, Z anchored to floor).
+    # Also publishes base_link→base_stabilized: an IMU-levelled frame (gait roll/pitch
+    # removed, yaw kept) that pointcloud_to_laserscan projects into. tilt_source=imu
+    # derives roll/pitch from /utlidar/imu (gravity-referenced) — NOT the biased leg-odom
+    # attitude. roll_offset/pitch_offset [rad] = the static tilt captured while the robot
+    # stands provably level; set them after calibration.
+    odom_tf = Node(
+        package='go2_nav_bridge',
+        executable='odom_tf_broadcaster',
+        name='odom_tf_broadcaster',
+        output='screen',
+        parameters=[{
+            'input_topic': '/utlidar/robot_odom',
+            'odom_frame': 'odom',
+            'base_frame': 'base_link',
+            'lock_z': False,
+            'publish_stabilized': True,
+            'stabilized_frame': 'base_stabilized',
+            'tilt_source': 'imu',
+            'imu_topic': '/utlidar/imu',
+            'imu_mode': 'auto',          # quaternion if firmware fills it, else complementary
+            'cf_tau': 0.25,              # complementary-filter time constant [s]
+            'roll_offset': 0.0,          # TODO: set from level calibration [rad]
+            'pitch_offset': 0.0,         # TODO: set from level calibration [rad]
+        }],
     )
 
-    nav2_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(go2_nav_bridge_dir, 'launch', 'nav2.launch.py')
-        ),
+    # 3D cloud → 2D scan (horizontal slab in the IMU-levelled base_stabilized frame)
+    pc2scan = Node(
+        package='pointcloud_to_laserscan',
+        executable='pointcloud_to_laserscan_node',
+        name='pointcloud_to_laserscan',
+        output='screen',
+        remappings=[
+            ('cloud_in', '/lidar_points'),
+            ('scan', '/scan'),
+        ],
+        parameters=[os.path.join(pkg_dir, 'config', 'pointcloud_to_laserscan.yaml')],
     )
 
-    octomap_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(go2_nav_bridge_dir, 'launch', 'octomap.launch.py')
-        ),
+    # 2D SLAM: owns map→odom + /map
+    slam = Node(
+        package='slam_toolbox',
+        executable='async_slam_toolbox_node',
+        name='slam_toolbox',
+        output='screen',
+        parameters=[os.path.join(pkg_dir, 'config', 'slam_toolbox_2d.yaml')],
     )
 
     bridge_node = Node(
@@ -107,29 +121,27 @@ def generate_launch_description():
         respawn_delay=1.0,
     )
 
-    # Staged bringup to defuse the TF/costmap startup race (NotebookLM: "Costmap2D
-    # will block activation until a full TF tree is available"). Producers start
-    # immediately; consumers are delayed.
-    #   t=0   : TF (map→odom + static bridges), Hesai driver, FAST-LIO2, teleop bridge
-    #   t=4 s : octomap (consumes /cloud_registered → publishes /projected_map)
-    #   t=8 s : Nav2 (consumes TF tree + /projected_map; autostart safe by now)
-    octomap_delayed = TimerAction(
-        period=OCTOMAP_START_DELAY_S,
-        actions=[octomap_launch],
+    nav2_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(pkg_dir, 'launch', 'nav2.launch.py')
+        ),
     )
+
+    # Staged bringup to defuse the TF/costmap startup race: producers start
+    # immediately; Nav2 is delayed until map→odom + /map are live.
+    #   t=0   : static extrinsic, Hesai driver, leg odom, pc2scan, slam_toolbox, teleop bridge
+    #   t=8 s : Nav2 (consumes TF tree + /map; autostart safe by now)
     nav2_delayed = TimerAction(
         period=NAV2_START_DELAY_S,
         actions=[nav2_launch],
     )
 
     return LaunchDescription([
-        map_odom,
-        tf_odom_camera_init,
-        tf_body_base_link,
         tf_base_link_hesai,
         hesai_launch,
-        fast_lio_launch,
+        odom_tf,
+        pc2scan,
+        slam,
         bridge_node,
-        octomap_delayed,
         nav2_delayed,
     ])

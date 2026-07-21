@@ -22,7 +22,7 @@
                      peer is hardcoded here (DHCP-proof). mDNS hostname peer is the fallback if
                      the AP drops multicast — see docs/wiki/pages/configs/dds-config.md. -->
             </Peers>
-            <!-- Default è 9; il nostro stack (Nav2 + FAST-LIO2 + bridge + Hesai) supera questa soglia. -->
+            <!-- Default è 9; il nostro stack (Nav2 + slam_toolbox + bridge + Hesai) supera questa soglia. -->
             <MaxAutoParticipantIndex>32</MaxAutoParticipantIndex>
             <ParticipantIndex>auto</ParticipantIndex>
         </Discovery>
@@ -30,7 +30,7 @@
             <!-- Socket buffers for high-bandwidth PointCloud2 traffic.
                  Requires on the host: net.core.rmem_max and net.core.wmem_max ≥ 4 MiB
                  (enforced by docker/ros_entrypoint.sh preflight). Send buffer added
-                 for symmetry — writers (Hesai, FAST-LIO2 cloud_registered) also need
+                 for symmetry — the Hesai /lidar_points writer also needs
                  headroom to avoid fragment drops under burst. -->
             <SocketReceiveBufferSize min="4 MiB"/>
             <SocketSendBufferSize min="4 MiB"/>

@@ -23,8 +23,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
   ros-humble-nav2-mppi-controller \
   ros-humble-nav2-smac-planner \
   ros-humble-robot-localization \
-  ros-humble-octomap-server \
-  ros-humble-octomap-ros \
   ros-humble-slam-toolbox \
   ros-humble-pointcloud-to-laserscan \
   ros-humble-rosbag2-storage-mcap \
@@ -83,8 +81,6 @@ RUN apt-get update && apt-get install -y \
   ros-humble-nav2-mppi-controller \
   ros-humble-nav2-smac-planner \
   ros-humble-robot-localization \
-  ros-humble-octomap-server \
-  ros-humble-octomap-ros \
   ros-humble-slam-toolbox \
   ros-humble-pointcloud-to-laserscan \
   libapr1 \

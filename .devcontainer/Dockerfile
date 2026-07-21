@@ -35,8 +35,6 @@ RUN apt-get update && apt-get install -y \
   ros-humble-nav2-mppi-controller \
   ros-humble-nav2-smac-planner \
   ros-humble-robot-localization \
-  ros-humble-octomap-server \
-  ros-humble-octomap-ros \
   ros-humble-rosbag2-storage-mcap \
   ros-humble-diagnostic-updater \
   libpcl-dev \

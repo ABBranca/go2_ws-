@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/badge/License-Apache--2.0-yellow)](LICENSE)
 
 Autonomous navigation framework for the **Unitree Go2** quadruped robot, integrating
-LiDAR-Inertial SLAM (FAST-LIO2), Nav2, and a custom velocity bridge. Bachelor's thesis in
+2D LiDAR SLAM (slam_toolbox), Nav2, and a custom velocity bridge. Bachelor's thesis in
 Mechatronics Engineering at **UNIMORE**.
 
 | Requirement | Version / Value |
@@ -15,7 +15,7 @@ Mechatronics Engineering at **UNIMORE**.
 | Platform | ARM64 — Jetson Orin (Expansion Dock) |
 | Container | Docker + `docker compose` |
 | LiDAR | Hesai XT16 |
-| IMU | BMI088 (onboard Go2) |
+| IMU | Go2 onboard (`/utlidar/imu`) |
 
 ---
 
@@ -51,20 +51,27 @@ For local development with VS Code Dev Containers, see [Development Workflow](#d
 
 ## Architecture
 
-The Hesai XT16 LiDAR streams point clouds over UDP. FAST-LIO2 fuses them with the onboard
-BMI088 IMU via an Iterative Extended Kalman Filter (IEKF) and an incremental k-d tree (ikd-Tree),
-publishing a continuous `map → odom → base_link` TF chain. Nav2 plans collision-free paths on
-the resulting map using `SmacPlannerHybrid` + MPPI controller (tuned for quadruped kinematics).
-`go2_nav_bridge` translates `cmd_vel` Twist messages into Unitree's proprietary `SportModeCmd`
-protocol with velocity clamping and a watchdog safety layer.
+The Hesai XT16 LiDAR streams point clouds over UDP. Because a horizontally-mounted XT16
+(16 beams, ±15° vertical FOV) cannot observe vertical translation, the stack uses **2D SLAM**:
+`pointcloud_to_laserscan` flattens the cloud into a `/scan` inside an IMU-levelled frame, and
+`slam_toolbox` builds a 2D occupancy grid while publishing the `map → odom` correction. Planar,
+Z-free odometry is sourced from the Go2's onboard leg kinematics (`/utlidar/robot_odom`) via
+`odom_tf_broadcaster`, which also removes gait-induced tilt using the body IMU (`/utlidar/imu`).
+Nav2 plans collision-free paths on the resulting map using `SmacPlannerHybrid` + MPPI controller
+(tuned for quadruped kinematics). `go2_nav_bridge` translates `cmd_vel` Twist messages into
+Unitree's proprietary `SportModeCmd` protocol with velocity clamping and a watchdog safety layer.
 
 ```
 Hesai XT16 (192.168.123.20, UDP:2368)
     └─ hesai_ros_driver_2  ──►  /lidar_points (PointCloud2)
                                           │
-                                     FAST-LIO2  (IEKF + ikd-Tree)
+                             pointcloud_to_laserscan  ──►  /scan (LaserScan)
                                           │
-                         TF: map → odom → base_link → hesai_lidar
+                                     slam_toolbox  (2D SLAM)
+                                          │
+                        TF: map → odom   +   /map (OccupancyGrid)
+                                          │
+  Go2 leg odom /utlidar/robot_odom ─► odom_tf_broadcaster ─► TF: odom → base_link
                                           │
                                      Nav2 Stack
                             (SmacPlannerHybrid + MPPI)
@@ -85,10 +92,13 @@ Hesai XT16 (192.168.123.20, UDP:2368)
 | :--- | :--- | :--- | :--- |
 | `go2_nav_bridge` | local | — | `cmd_vel` → `SportModeCmd` translation; velocity clamping; watchdog; 21 unit tests |
 | `unitree_ros2` | submodule | [unitreerobotics/unitree_ros2](https://github.com/unitreerobotics/unitree_ros2) | Unitree SDK message types (`unitree_go`, `unitree_api`) |
-| `fast_lio_ros2` | submodule | [hku-mars/FAST_LIO](https://github.com/hku-mars/FAST_LIO) | Tightly-coupled LiDAR-IMU SLAM via IEKF + ikd-Tree |
 | `allan_variance_ros2` | submodule | [Autoliv-Research/allan_variance_ros2](https://github.com/Autoliv-Research/allan_variance_ros2) | IMU characterization (Angle Random Walk, Bias Instability) via Allan Variance |
 | `hesai_ros_driver_2` | submodule | [HesaiTechnology/HesaiLidar_ROS2](https://github.com/HesaiTechnology/HesaiLidar_ROS2) | Hesai XT16 ROS 2 driver |
-| `livox_ros_driver2` | submodule | [Livox-SDK/livox_ros_driver2](https://github.com/Livox-SDK/livox_ros_driver2) | Custom message types required by FAST-LIO2 (no Livox hardware needed) |
+
+> **SLAM & scan conversion** are provided by upstream apt packages (`ros-humble-slam-toolbox`,
+> `ros-humble-pointcloud-to-laserscan`), installed by the `Dockerfile` — not workspace packages.
+> The previous 3D pipeline (`fast_lio_ros2`, `livox_ros_driver2`, `octomap_server`) was retired
+> in favour of 2D SLAM; it remains recoverable from git history.
 
 ---
 
@@ -107,15 +117,16 @@ Hesai XT16 (192.168.123.20, UDP:2368)
 > adapter. Recommended solution: USB Wi-Fi dongle (Alfa AWUS036ACM, MediaTek MT7612U) directly
 > on the Dock. Fallback: GL.iNet travel router on the Go2 Ethernet port for L2 bridging.
 
-### LiDAR-IMU Extrinsics
+### LiDAR Extrinsics
 
 | Parameter | Value | Source |
 | :--- | :--- | :--- |
-| `extrinsic_T` | `[0.171, 0.0, 0.0908]` m | Official Unitree documentation ⚠️ pending caliper verification |
-| `extrinsic_R` | `I₃` (identity) | Official Unitree documentation |
+| `T` (base_link → hesai_lidar) | `[0.171, 0.0, 0.0908]` m | Official Unitree documentation ⚠️ pending caliper verification |
+| `R` | `I₃` (identity) | Official Unitree documentation |
 | IMU noise (`gyr_cov`, `acc_cov`) | Measured values (Allan Variance) | ✅ Analyzed via `allan_variance_ros2` |
 
-Config file: [`src/fast_lio_ros2/config/hesai_xt16.yaml`](src/fast_lio_ros2/config/hesai_xt16.yaml)
+The extrinsic is applied as a static transform (`base_link → hesai_lidar`) in
+[`src/go2_nav_bridge/launch/bringup.launch.py`](src/go2_nav_bridge/launch/bringup.launch.py).
 
 ---
 
@@ -137,8 +148,6 @@ ssh unitree@192.168.123.18 "echo ok"
 git clone --recursive https://github.com/ABBranca/go2_ws.git
 cd go2_ws
 ```
-
-> `livox_ros_driver2/package.xml` is already committed to the repo — no manual symlink required.
 
 ### First-time Docker start on robot
 
@@ -218,8 +227,9 @@ ssh unitree@192.168.123.18 "cd ~/go2_ws/docker && docker compose up -d"
 | Topic | Type | Direction | Publisher |
 | :--- | :--- | :--- | :--- |
 | `/lidar_points` | `sensor_msgs/PointCloud2` | pub | `hesai_ros_driver_2` |
-| `/Odometry` | `nav_msgs/Odometry` | pub | `fast_lio_ros2` |
-| `/tf`, `/tf_static` | `tf2_msgs/TFMessage` | pub | `fast_lio_ros2`, `static_transform_publisher` |
+| `/scan` | `sensor_msgs/LaserScan` | pub | `pointcloud_to_laserscan` |
+| `/map` | `nav_msgs/OccupancyGrid` | pub | `slam_toolbox` |
+| `/tf`, `/tf_static` | `tf2_msgs/TFMessage` | pub | `slam_toolbox` (map→odom), `odom_tf_broadcaster` (odom→base_link), `static_transform_publisher` |
 | `/cmd_vel` | `geometry_msgs/Twist` | sub | Nav2 → `go2_nav_bridge` |
 | `/sportmodestate` | `unitree_go/SportModeState` | pub | MCU |
 
@@ -238,8 +248,8 @@ ssh unitree@192.168.123.18 "cd ~/go2_ws/docker && docker compose up -d"
 
 ```
 map
- └─ odom          (FAST-LIO2)
-     └─ base_link (FAST-LIO2)
+ └─ odom          (slam_toolbox)
+     └─ base_link (odom_tf_broadcaster — Go2 leg odometry)
          └─ hesai_lidar  (static: T=[0.171, 0, 0.0908] m, R=I₃)
 ```
 
@@ -248,7 +258,7 @@ map
 ## Research Context
 
 **Thesis objectives:**
-1. Deploy a full LiDAR-SLAM + Nav2 pipeline on a Unitree Go2 quadruped (ARM64).
+1. Deploy a full 2D LiDAR-SLAM + Nav2 pipeline on a Unitree Go2 quadruped (ARM64).
 2. Implement a velocity bridge that safely translates Nav2 output to proprietary motion commands.
 
 **Roadmap:**
@@ -256,13 +266,13 @@ map
 | Milestone | Status |
 | :--- | :--- |
 | Hesai XT16 ROS 2 driver integration | ✅ |
-| FAST-LIO2 config for XT16 (hesai_xt16.yaml) | ✅ |
+| 2D SLAM config for XT16 (slam_toolbox_2d.yaml) | ✅ |
 | `go2_nav_bridge` (cmd_vel → SportModeCmd) | ✅ |
 | Docker ARM64 image build & transfer | ⏳ Pending |
 | LiDAR-IMU extrinsics field verification | ⚠️ Pending |
 | IMU noise characterization (Allan Variance) | ✅ Completed |
 | End-to-end test: LiDAR → SLAM → Nav2 → bridge → robot motion | ⏳ Pending |
-| 2D occupancy grid from FAST-LIO2 point cloud (octomap_server) | ⏳ Pending |
+| 2D occupancy grid via slam_toolbox (from projected `/scan`) | ✅ |
 
 **Related work:** SayCan (Ahn et al., 2022), Code as Policies (Liang et al., 2023),
 ProgPrompt (Singh et al., 2023), VoxPoser (Huang et al., 2023).
@@ -274,8 +284,6 @@ ProgPrompt (Singh et al., 2023), VoxPoser (Huang et al., 2023).
 | Issue | Status | Notes |
 | :--- | :--- | :--- |
 | Container exits immediately (Exit Code 0) | ✅ Fixed | `docker-compose.yml` sets `stdin_open: true` and `tty: true` |
-| `livox_ros_driver2` build fails | ✅ Fixed | `package.xml` committed; colcon passes `-DROS_EDITION=ROS2 -DHUMBLE_ROS=humble` |
-| PCL not found during build | ✅ Fixed | `libpcl-dev` and `ros-humble-pcl-ros` added to `Dockerfile` |
 | `rmw_cyclonedds_cpp` not installed | ✅ Fixed | `ros-humble-rmw-cyclonedds-cpp` added to `Dockerfile` |
 | CycloneDDS random interface selection | ✅ Fixed | `docker/cyclonedds.xml` with `eth0` mounted via `CYCLONEDDS_URI` |
 | CycloneDDS default socket buffer (212 KB) drops PointCloud2 bursts | ✅ Fixed | 4 MB `SocketReceiveBufferSize` in `cyclonedds.xml`; host requires `sudo sysctl -w net.core.rmem_max=4194304` |

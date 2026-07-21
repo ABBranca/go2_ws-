@@ -5,7 +5,7 @@
 1. `activate_skill(name="caveman")`
 2. `activate_skill(name="graphify")`
 
-Autonomous navigation for Unitree Go2 using Hesai XT16 LiDAR, FAST-LIO2 SLAM, and Nav2.
+Autonomous navigation for Unitree Go2 using Hesai XT16 LiDAR, slam_toolbox (2D SLAM), and Nav2.
 
 ## 🚀 Workflows
 - **Production:** `./sync_to_dog.sh` && `docker compose up --build -d` (Multi-stage ARM64 build).
@@ -13,15 +13,16 @@ Autonomous navigation for Unitree Go2 using Hesai XT16 LiDAR, FAST-LIO2 SLAM, an
 - **Local:** VS Code Dev Containers with ROS 2 extension.
 
 ## 🏗️ Architecture
-- **Pipeline:** Hesai Driver → FAST-LIO2 (SLAM) → Nav2 (Planning) → `go2_nav_bridge` (Control).
+- **Pipeline:** Hesai Driver → pointcloud_to_laserscan (cloud→scan) → slam_toolbox (2D SLAM) → Nav2 (Planning) → `go2_nav_bridge` (Control).
+- **Odometry:** planar leg odometry from the Go2 (`/utlidar/robot_odom`) via `odom_tf_broadcaster`; a horizontal XT16 cannot observe Z, so 3D LiDAR-inertial SLAM was retired.
 - **Control:** `cmd_vel` → `SportModeCmd` (high-level API).
-- **TF Tree:** `map` → `odom` → `base_link` → `hesai_lidar` (Static T: [0.171, 0, 0.0908], R: I₃).
+- **TF Tree:** `map` →(slam_toolbox)→ `odom` →(odom_tf_broadcaster)→ `base_link` →(static)→ `hesai_lidar` (Static T: [0.171, 0, 0.0908], R: I₃).
 - **Networking:** Orin Dock (`192.168.123.18`) runs stack; MCU (`.161`) handles motion. USB Wi-Fi on Dock for telemetry.
 
 ## 🛠️ Key Components (via Graphify)
 - **Control Hub:** `src/go2_nav_bridge/` (Hardened bridge with watchdogs/sanitization).
-- **SLAM Core:** `src/fast_lio_ros2/src/laserMapping.cpp`.
-- **Config God Nodes:** `src/fast_lio_ros2/config/hesai_xt16.yaml` (Extrinsics/IMU), `nav2_params.yaml`.
+- **SLAM Core:** `slam_toolbox` (external apt pkg); orchestrated by `src/go2_nav_bridge/launch/bringup.launch.py`.
+- **Config God Nodes:** `src/go2_nav_bridge/config/slam_toolbox_2d.yaml` (2D SLAM), `pointcloud_to_laserscan.yaml` (cloud→scan slab), `nav2_params.yaml`.
 - **Deployment:** `docker/docker-compose.yml`.
 
 ## 📚 LLM Wiki

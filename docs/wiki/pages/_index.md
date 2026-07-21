@@ -1,12 +1,12 @@
 ---
 type: index
 tags: [index]
-updated: 2026-06-03
+updated: 2026-07-21
 ---
 
 # Go2 Navigation Wiki — Index
 
-Sistema di navigazione autonoma per [[go2-robot]] con [[hesai-xt16]], SLAM 2D ([[slam-toolbox-2d]], dal 2026-05-29; ex [[fast-lio2]]) e [[nav2]].
+Sistema di navigazione autonoma per [[go2-robot]] con [[hesai-xt16]], SLAM 2D ([[slam-toolbox-2d]], dal 2026-05-29; ex FAST-LIO2, ritirato) e [[nav2]].
 
 ---
 
@@ -20,9 +20,12 @@ Sistema di navigazione autonoma per [[go2-robot]] con [[hesai-xt16]], SLAM 2D ([
 
 ### Software
 - [[slam-toolbox-2d]] — **current SLAM**: 2D slam_toolbox + Go2 leg odometry
-- [[fast-lio2]] — FAST-LIO2 SLAM (LiDAR-inertial) — **deprecated** (Z runaway)
 - [[nav2]] — Nav2 navigation framework
 - [[go2-nav-bridge]] — `cmd_vel` → SportModeCmd control bridge
+
+> FAST-LIO2 (3D LiDAR-inertial SLAM) and its satellites (`livox_ros_driver2`, `octomap_server`)
+> were retired on 2026-07-21 — a horizontal XT16 cannot observe Z (see [[z-observability]]).
+> The packages remain recoverable from git history.
 
 ---
 
@@ -30,7 +33,7 @@ Sistema di navigazione autonoma per [[go2-robot]] con [[hesai-xt16]], SLAM 2D ([
 
 - [[tf-tree]] — TF frame chain: `map` → `odom` → `base_link` → `hesai_lidar`
 - [[slam]] — SLAM overview and algorithm choice
-- [[z-observability]] — why FAST-LIO2 diverges in Z; the 2D pivot rationale
+- [[z-observability]] — why 3D LiDAR-inertial SLAM diverges in Z; the 2D pivot rationale
 - [[motion-undistortion]] — LiDAR point cloud motion distortion correction
 - [[ptp-sync]] — PTP grandmaster su Orin, sincronizzazione clock LiDAR (IEEE 1588v2)
 - [[offline-slam-replay]] — workflow rosbag record/replay per sviluppo SLAM senza robot fisico
@@ -43,7 +46,6 @@ Sistema di navigazione autonoma per [[go2-robot]] con [[hesai-xt16]], SLAM 2D ([
 ## Configs
 
 - [[extrinsics]] — LiDAR–IMU extrinsic calibration (T, R)
-- [[fast-lio2-params]] — FAST-LIO2 full parameter reference
 - [[dds-config]] — CycloneDDS network configuration
 
 ---
