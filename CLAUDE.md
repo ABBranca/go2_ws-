@@ -7,6 +7,9 @@
 
 Autonomous navigation for Unitree Go2 using Hesai XT16 LiDAR, FAST-LIO2 SLAM, and Nav2.
 
+## 📝 TODO
+- **Direct laptop↔dog WiFi (next lab session):** Set up **Option B** — turn the Orin dock's USB Wi-Fi into an Access Point so the laptop joins the Orin directly (no router). Steps: `nmcli device wifi hotspot ifname <wlan> ssid go2-direct password <pw>`, then `ipv4.method shared` + `connection.autoconnect yes`. Optionally pin AP to `192.168.123.18/24` to keep the existing subnet. **Must** add the Wi-Fi interface to `cyclonedds.xml` `NetworkInterface` allowlist (currently pinned to `eth0`) or ROS 2 discovery will fail over WiFi.
+
 ## 🚀 Workflows
 - **Production:** `./sync_to_dog.sh` && `docker compose up --build -d` (Multi-stage ARM64 build).
 - **Development:** `docker compose --profile dev up -d` (Volume mounts for rapid iteration).
