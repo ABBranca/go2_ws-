@@ -48,8 +48,11 @@ RUN find src/ -type d -name "build" -exec rm -rf {} + && \
     find src/ -type d -name "install" -exec rm -rf {} + && \
     find src/ -type d -name "log" -exec rm -rf {} +
 
-# Exclude example packages that require the native unitree_sdk2 (not available via apt)
-RUN touch src/unitree_ros2/example/COLCON_IGNORE
+# Exclude packages not needed by the runtime nav stack:
+#  - unitree_ros2/example : requires native unitree_sdk2 (not on apt)
+#  - allan_variance_ros2  : offline IMU noise-characterization tool (Allan variance)
+RUN touch src/unitree_ros2/example/COLCON_IGNORE \
+    && touch src/allan_variance_ros2/COLCON_IGNORE
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
@@ -66,6 +69,7 @@ RUN --mount=type=cache,target=/ros2_ws/build,sharing=private \
       --packages-select unitree_api unitree_go \
       --cmake-args -DROS_EDITION=ROS2 -DHUMBLE_ROS=humble && \
     colcon build --parallel-workers 1 \
+      --packages-ignore allan_variance_ros2 \
       --cmake-args -DROS_EDITION=ROS2 -DHUMBLE_ROS=humble
 
 # =============================================================================

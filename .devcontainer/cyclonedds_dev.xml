@@ -33,7 +33,7 @@
                  stack (Nav2 + slam_toolbox + bridge + Hesai) has >10 participants, so
                  with the default 9 the laptop sees only the low-index ones (Hesai
                  lidar+imu) and misses everything launched later. -->
-            <MaxAutoParticipantIndex>64</MaxAutoParticipantIndex>
+            <MaxAutoParticipantIndex>128</MaxAutoParticipantIndex>
         </Discovery>
         <Internal>
             <SocketReceiveBufferSize min="200kB"/>
