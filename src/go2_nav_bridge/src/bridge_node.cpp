@@ -201,6 +201,8 @@ private:
     last_stop_publish_time_ = this->now();
   }
 
+  void count(void) {}
+
   void publish_stop_command() {
     std::lock_guard<std::mutex> lock(state_mutex_);
     publish_stop_unlocked();

@@ -111,6 +111,22 @@ RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc \
   && echo "export ROS_DOMAIN_ID=0" >> ~/.bashrc \
   && echo "[ -f /workspaces/go2_ws/install/setup.bash ] && source /workspaces/go2_ws/install/setup.bash" >> ~/.bashrc
 
+# Self-heal a wedged ros2 CLI daemon. A stuck daemon keeps its XML-RPC socket on
+# 127.0.0.1:11511 (domain 0) in LISTEN but stops responding, so every daemon-backed
+# 'ros2 <verb>' hangs (~127s each on dropped SYNs). On each interactive shell, issue a
+# real XML-RPC round-trip ('ros2 daemon status'): healthy -> replies fast, keep it;
+# wedged -> times out (exit != 0) -> kill so a fresh daemon respawns on the next verb;
+# absent -> "not running" (exit 0), harmless no-op. 'ros2-reset' = manual kill.
+# NB: a plain TCP connect is NOT enough — the kernel completes the handshake even when
+# the app is stalled, so we must force an application-level response.
+RUN echo 'alias ros2-reset="pkill -9 -f ros2cli.daemon 2>/dev/null; echo ros2 daemon reset"' >> ~/.bashrc \
+  && echo '_ros2_daemon_heal() {' >> ~/.bashrc \
+  && echo '  case $- in *i*) ;; *) return ;; esac' >> ~/.bashrc \
+  && echo '  timeout -k 1 3 ros2 daemon status >/dev/null 2>&1 && return' >> ~/.bashrc \
+  && echo '  pkill -9 -f ros2cli.daemon 2>/dev/null' >> ~/.bashrc \
+  && echo '}' >> ~/.bashrc \
+  && echo '_ros2_daemon_heal' >> ~/.bashrc
+
 # Pre-create Neovim data dirs owned by 'ros' so the named volumes mounted here
 # (see devcontainer.json "mounts") inherit ros:ros ownership instead of root.
 RUN mkdir -p ~/.local/share/nvim ~/.local/state/nvim ~/.cache/nvim ~/.config

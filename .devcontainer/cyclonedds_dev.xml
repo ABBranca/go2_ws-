@@ -3,9 +3,10 @@
     <Domain Id="any">
         <General>
             <Interfaces>
-                <!-- Auto-select the interface that has a route to 192.168.123.x.
-                     With --network=host the container sees all host NICs, so
-                     CycloneDDS will pick whichever one the OS routes to the peer. -->
+                <!-- Auto-select the interface that has a route to the peer.
+                     With host networking (network_mode host) the container sees all
+                     host NICs, so CycloneDDS picks whichever one the OS routes to the
+                     peer (eth0 for 192.168.123.x, WiFi for the 10.42.0.x AP). -->
                 <NetworkInterface autodetermine="true" />
             </Interfaces>
             <!-- Enable multicast: required for intra-container and same-subnet
@@ -15,11 +16,24 @@
         <Discovery>
             <Peers>
                 <Peer address="127.0.0.1"/>
-                <!-- Robot Orin Dock: explicit unicast so DDS discovery works
-                     through Docker Desktop's NAT/routing layer -->
+                <!-- Robot Orin Dock via wired link (eth0): explicit unicast so DDS
+                     discovery works through Docker's NAT/routing layer -->
                 <Peer address="192.168.123.18"/>
+                <!-- Robot via its own WiFi hotspot/AP (wlan0 = 10.42.0.1). The AP
+                     subnet 10.42.0.0/24 does not route to 192.168.123.x and does not
+                     forward multicast SPDP, so an explicit unicast peer is required
+                     for laptop-over-AP debugging. Harmless on the wired path (an
+                     unreachable peer is silently ignored). -->
+                <Peer address="10.42.0.1"/>
             </Peers>
             <ParticipantIndex>auto</ParticipantIndex>
+            <!-- Match the robot's docker/cyclonedds.xml. Default is 9, but on UNICAST
+                 discovery (AP path, no multicast) CycloneDDS only probes remote
+                 participant indices 0..MaxAutoParticipantIndex per peer IP. The robot
+                 stack (Nav2 + slam_toolbox + bridge + Hesai) has >10 participants, so
+                 with the default 9 the laptop sees only the low-index ones (Hesai
+                 lidar+imu) and misses everything launched later. -->
+            <MaxAutoParticipantIndex>64</MaxAutoParticipantIndex>
         </Discovery>
         <Internal>
             <SocketReceiveBufferSize min="200kB"/>

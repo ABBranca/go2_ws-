@@ -8,7 +8,7 @@ if [ -f "$SCRIPT_DIR/.env" ]; then
   set +a
 fi
 
-ROBOT_IP="${ROBOT_IP:-192.168.1.27}"
+ROBOT_IP="${ROBOT_IP:-192.168.123.18}"
 REMOTE_USER="${ROBOT_USER:-unitree}"
 REMOTE_PATH="${ROBOT_WORKSPACE:-/home/unitree/go2_ws}"
 
