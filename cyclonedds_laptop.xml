@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<CycloneDDS>
-    <Domain Id="any">
+<CycloneDDS xmlns="https://cdds.io/config" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://cdds.io/config https://raw.githubusercontent.com/eclipse-cyclonedds/cyclonedds/master/etc/cyclonedds.xsd">
+    <Domain id="any">
+        <!-- Silenzia lo spam degli errori di instradamento locali -->
+        <Tracing>
+            <Verbosity>none</Verbosity>
+        </Tracing>
+        
         <General>
             <Interfaces>
-                <NetworkInterface name="eno1" priority="1" />
+                <!-- IMPORTANTE: Inserisci qui il nome esatto della scheda Wi-Fi del TUO LAPTOP (es. wlan0, wlp2s0, ecc.). Verificalo eseguendo 'ip a' -->
+                <NetworkInterface name="wlp3s0"/>
             </Interfaces>
-            <AllowMulticast>true</AllowMulticast>
-            <Transport>udp</Transport>
+            <AllowMulticast>spdp</AllowMulticast>
+            <MaxMessageSize>65500B</MaxMessageSize>
         </General>
+        
         <Discovery>
-            <Peers>
-                <Peer address="127.0.0.1"/>
-                <Peer address="192.168.123.18"/>
-            </Peers>
             <ParticipantIndex>auto</ParticipantIndex>
-            <MaxAutoParticipantIndex>120</MaxAutoParticipantIndex>
+            <MaxAutoParticipantIndex>100</MaxAutoParticipantIndex>
+            <Peers>
+                <!-- Mantieni il puntamento esplicito verso l'AP del robot per garantire la connessione SEDP -->
+                <Peer address="10.42.0.1"/>
+            </Peers>
         </Discovery>
-        <Internal>
-            <SocketReceiveBufferSize min="4 MiB"/>
-        </Internal>
-        <Tracing>
-            <Verbosity>config</Verbosity>
-            <OutputFile>/tmp/cyclone_laptop.log</OutputFile>
-        </Tracing>
     </Domain>
 </CycloneDDS>

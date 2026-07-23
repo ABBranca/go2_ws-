@@ -16,6 +16,9 @@ services:
     tty: true
     volumes:
       - ./cyclonedds.xml:/cyclonedds.xml:ro
+      # Persist rosbags to the host (Orin): `ros2 bag record -o /ros2_ws/bags/...`
+      # writes here instead of vanishing with the container. See bags/record_walk.sh.
+      - ../bags:/ros2_ws/bags
     environment:
       - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-0}
       - RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION:-rmw_cyclonedds_cpp}

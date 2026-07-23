@@ -8,7 +8,7 @@ if [ -f "$SCRIPT_DIR/.env" ]; then
   set +a
 fi
 
-ROBOT_IP="${ROBOT_IP:-192.168.123.18}"
+ROBOT_IP="${ROBOT_IP:-10.42.0.1}"
 REMOTE_USER="${ROBOT_USER:-unitree}"
 REMOTE_PATH="${ROBOT_WORKSPACE:-/home/unitree/go2_ws}"
 
@@ -28,6 +28,7 @@ rsync -avz --progress \
   --exclude '.git' \
   --exclude 'build' \
   --exclude 'install' \
+  --exclude 'bags' \
   --exclude 'log' \
   --exclude '.vscode' \
   --exclude 'package-lock.json' \

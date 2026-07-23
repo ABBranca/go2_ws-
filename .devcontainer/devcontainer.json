@@ -69,7 +69,7 @@
   ],
   "containerEnv": {
     "RMW_IMPLEMENTATION": "rmw_cyclonedds_cpp",
-    "CYCLONEDDS_URI": "file://${containerWorkspaceFolder}/.devcontainer/cyclonedds_dev.xml",
+    "CYCLONEDDS_URI": "file://${containerWorkspaceFolder}/cyclonedds_laptop.xml",
     "ROS_DOMAIN_ID": "0"
   },
   "features": {

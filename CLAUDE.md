@@ -34,7 +34,7 @@ Autonomous navigation for Unitree Go2 using Hesai XT16 LiDAR, slam_toolbox (2D S
 
 ## 📏 Standards & Rules
 - **Safety:** Bridge must sanitize inputs (NaN/Inf) and include a velocity watchdog.
-- **DDS:** Use `cyclonedds.xml` with explicit `eth0` interface to prevent discovery failure.
+- **DDS:** Robot `docker/cyclonedds.xml` binds `eth0` **and** `wlan0` (`presence_required="false"`) → bi-transport (wired `192.168.123.x` + Wi-Fi AP `10.42.0.x`). Laptop uses the single `cyclonedds_laptop.xml` (`autodetermine` + unicast peers) via `scripts/setup_laptop_env.sh`.
 - **Subagents:** Parallel agents are read-only; apply all file writes in the main session.
 - **Navigation:** **Always use `graphify`** (read `graphify-out/GRAPH_REPORT.md` or `graphify-out/wiki/`) to identify architectural hubs and dependencies before making changes.
 - **Documentation**: Always ask the user whether to fetch info about the documentation using the NotebookLM-MCP or not. **NEVER** act without knowing the most recent documentation about the task.

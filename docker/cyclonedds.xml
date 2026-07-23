@@ -3,29 +3,33 @@
     <Domain Id="any">
         <General>
             <Interfaces>
-                <NetworkInterface name="eth0" priority="default" multicast="default" />
-                <!-- USB WiFi dongle (rtl8812au) — advertises the 192.168.1.27 locator so a
-                     laptop on the WiFi subnet can discover the robot. required="false" keeps
-                     the stack starting when the dongle is absent (wired-only sessions). -->
-                <NetworkInterface name="wlan0" priority="default" multicast="default" presence_required="false" />
+                <NetworkInterface name="lo"/>
+                <NetworkInterface name="eth0"/>
+                <!-- USB WiFi dongle (rtl8812au). In NetworkManager shared-AP mode it is
+                     wlan0 = 10.42.0.1 and leases 10.42.0.x, so a laptop on the AP can discover
+                     the robot. presence_required="false" keeps the stack starting when the
+                     dongle is absent (wired-only sessions). -->
+                <NetworkInterface name="wlan0" presence_required="false" />
             </Interfaces>
-            <AllowMulticast>true</AllowMulticast>
+            <AllowMulticast>false</AllowMulticast>
         </General>
         <Discovery>
             <Peers>
                 <Peer address="127.0.0.1"/>
-                <Peer address="192.168.123.18"/>
-                <!-- Laptop developer machine over wired link (192.168.123.0/24). -->
-                <Peer address="192.168.123.222"/>
-                <Peer address="10.42.0.66"/>
-        
-                <!-- WiFi laptop is discovered via multicast SPDP (see wlan0 interface above):
-                     its leased 192.168.1.x address is carried in the announcement, so no static
-                     peer is hardcoded here (DHCP-proof). mDNS hostname peer is the fallback if
-                     the AP drops multicast — see docs/wiki/pages/configs/dds-config.md. -->
+                <!-- Developer laptop — the two links it can reach the robot on: -->
+                <Peer address="192.168.123.222"/>   <!-- laptop over wired link (192.168.123.0/24) -->
+                <Peer address="10.42.0.66"/>   <!-- laptop over wired link (192.168.123.0/24) -->
+
+
+                <!-- Unicast peers make discovery independent of multicast SPDP, which the AP
+                     may not forward. If the laptop's DHCP lease differs from .66, discovery
+                     still completes: the laptop initiates toward the robot and the robot learns
+                     the real locator from the SPDP message. mDNS hostname peer is the fallback
+                     — see docs/wiki/pages/configs/dds-config.md. -->
             </Peers>
-            <!-- Default è 9; il nostro stack (Nav2 + slam_toolbox + bridge + Hesai) supera questa soglia. -->
-            <MaxAutoParticipantIndex>32</MaxAutoParticipantIndex>
+            <!-- Default è 9; il nostro stack (Nav2 + slam_toolbox + bridge + Hesai) supera questa
+                 soglia. 128 = allineato al laptop (cyclonedds_laptop.xml) per discovery unicast. -->
+            <MaxAutoParticipantIndex>128</MaxAutoParticipantIndex>
             <ParticipantIndex>auto</ParticipantIndex>
    </Discovery>
         <Internal>
